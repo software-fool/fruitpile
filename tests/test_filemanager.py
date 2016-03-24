@@ -45,6 +45,20 @@ class TestFileHandler(unittest.TestCase):
     fob = io.open(self.filename, "rb")
     data = fob.read()
     self.assertEquals(chunk*5, data)
+
+  def test_chunked_reading(self):
+    filename = "%s/data/example_file.txt" % (mydir)
+    fh = FileHandler.create_file(filename, "r")
+    data = fh.read(5)
+    self.assertEquals(data, "My na")
+
+  def test_op_on_closed_file(self):
+    with self.assertRaises(IOError):
+      filename = "%s/data/example_file.txt" % (mydir)
+      fh = FileHandler.create_file(filename, "r")
+      fh.close()
+      fh.read()
+
 if __name__ == "__main__":
   unittest.main()
 
