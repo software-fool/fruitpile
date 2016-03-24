@@ -20,7 +20,7 @@ class FileHandler(object):
 
   @staticmethod
   def create_file(path, mode):
-    return FileHandler(fob.open(path, mode))
+    return FileHandler(open(path, mode))
 
 
 class FileManager(object):
