@@ -1,5 +1,6 @@
 import os
 import logging
+import io
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +30,7 @@ class FileHandler(object):
 
   @staticmethod
   def create_file(path, mode):
-    return FileHandler(open(path, mode))
+    return FileHandler(io.open(path, 'b'+mode))
 
 
 class FileManager(object):
