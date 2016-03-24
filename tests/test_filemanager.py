@@ -17,6 +17,16 @@ class TestFileHandler(unittest.TestCase):
     data = fh.read()
     self.assertEquals(data, open(filename, "r").read())
 
+  def test_open_a_file_to_write(self):
+    filename = "/tmp/test_filehandler.%d.txt" % (os.getpid())
+    fh = FileHandler.create_file(filename, "w")
+    contents = "This is the files contents"
+    fh.write(contents)
+    fh.close()
+    fob = open(filename, "r")
+    data = fob.read()
+    self.assertEquals(contents, data)
+    os.remove(filename)
 
 if __name__ == "__main__":
   unittest.main()
