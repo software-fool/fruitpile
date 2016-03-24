@@ -12,7 +12,7 @@ from repo.filemanager import FileHandler, FileManager
 class TestFileHandler(unittest.TestCase):
 
   def test_open_a_file_to_read(self):
-    filename = "%s/data/test_file.txt" % (mydir)
+    filename = "%s/data/example_file.txt" % (mydir)
     fh = FileHandler.create_file(filename, "r")
     data = fh.read()
     self.assertEquals(data, open(filename, "r").read())
