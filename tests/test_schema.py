@@ -67,6 +67,19 @@ class TestFileSet(unittest.TestCase):
     self.assertEquals(len(fss), 1)
     self.assertEquals(fss[0], fs)
 
+  def test_create_multiple_filesets(self):
+    fss = self.session.query(FileSet).all()
+    self.assertEquals(len(fss), 0)
+    fss = []
+    for i in range(0,10):
+      fs = FileSet(name="test-%d" % (i))
+      self.session.add(fs)
+      fss.append(fs)
+    self.session.commit()
+    fss2 = self.session.query(FileSet).all()
+    self.assertEquals(len(fss), 10)
+    self.assertEquals(fss, fss2)
+
 
 
 if __name__ == "__main__":
