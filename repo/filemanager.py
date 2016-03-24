@@ -23,7 +23,7 @@ class FileHandler(object):
     return FileHandler(fob.open(path, mode))
 
 
-class Repository(object):
+class FileManager(object):
   def __init__(self, repopath):
     self.repopath = repopath
     self.db = self.os.path(repopath, "repodb")
