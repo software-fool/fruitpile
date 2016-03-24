@@ -8,7 +8,7 @@ from datetime import datetime
 mydir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
 sys.path.append(os.path.dirname(mydir))
 
-from repo.filemanager import FileHandler, FileManager
+from fruitpile.repo.filemanager import FileHandler, FileManager
 
 class TestFileHandler(unittest.TestCase):
 

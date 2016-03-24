@@ -7,7 +7,7 @@ from datetime import datetime
 mydir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
 sys.path.append(os.path.dirname(mydir))
 
-from db.schema import *
+from fruitpile.db.schema import *
 from sqlalchemy.orm import sessionmaker
 
 def setUpDatabase():
