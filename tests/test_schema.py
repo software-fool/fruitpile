@@ -2,6 +2,7 @@ import unittest
 import inspect
 import os.path
 import sys
+from datetime import datetime
 
 mydir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
 sys.path.append(os.path.dirname(mydir))
@@ -81,6 +82,64 @@ class TestFileSet(unittest.TestCase):
     self.assertEquals(fss, fss2)
 
 
+class TestBinFile(unittest.TestCase):
+
+  def setUp(self):
+    self.engine = create_engine('sqlite:///:memory:')
+    Base.metadata.create_all(bind=self.engine)
+    Session = sessionmaker(bind=self.engine)
+    self.session = Session()
+
+  def tearDown(self):
+    self.session.close()
+
+  def test_create_a_bin_file(self):
+    bfs = self.session.query(BinFile).all()
+    self.assertEquals(len(bfs), 0)
+    fs = FileSet(name="test-1")
+    st = State(name="unverified")
+    bf = BinFile(fileset=fs,
+                 name="xx-1.4.tar.gz",
+                 path="build-1/xx-1.4.tar.gz",
+                 version="4",
+                 revision="1234",
+                 primary=True,
+                 state=st,
+                 create_date=datetime(2016,3,24),
+                 update_date=datetime(2016,3,24),
+                 source="buildbot",
+                 checksum="12345")
+    self.session.add(bf)
+    self.session.commit()
+    bfs = self.session.query(BinFile).all()
+    self.assertEquals(len(bfs), 1)
+    self.assertEquals(bfs[0], bf)
+
+  def test_create_multiple_bin_files(self):
+    bfs = self.session.query(BinFile).all()
+    self.assertEquals(len(bfs), 0)
+    fs = FileSet(name="test-1")
+    st = State(name="unverified")
+    bfs = []
+    targets = ["arm-cortex_m4","arm-cortex_a8","x86","x86_64","mip32","java","python"]
+    for n in targets:
+      bf = BinFile(fileset=fs,
+                   name="xx-%s-1.4.tar.gz" % (n),
+                   path="build-1/xx-%s-1.4.tar.gz" % (n),
+                   version="4",
+                   revision="1234",
+                   primary=True,
+                   state=st,
+                   create_date=datetime(2016,2,12),
+                   update_date=datetime(2016,2,12),
+                   source="buildbot01",
+                   checksum="12345-%s" % (n))
+      bfs.append(bf)
+      self.session.add(bf)
+    self.session.commit()
+    bfs1 = self.session.query(BinFile).all()
+    self.assertEquals(len(bfs1), len(targets))
+    self.assertEquals(bfs1, bfs)
 
 if __name__ == "__main__":
   unittest.main()
