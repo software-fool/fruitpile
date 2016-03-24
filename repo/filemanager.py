@@ -12,7 +12,7 @@ class FileHandler(object):
 
   def write(self, data):
     if not self.is_open:
-      raise IOError, "file not open"
+      raise IOError("file not open")
     return self.fob.write(data)
 
   def close(self):
@@ -21,7 +21,7 @@ class FileHandler(object):
 
   def read(self, n=None):
     if not self.is_open:
-      raise IOError, "file not open"
+      raise IOError("file not open")
     if n:
       data = self.fob.read(n)
     else:
