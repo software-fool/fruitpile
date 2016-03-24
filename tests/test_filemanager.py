@@ -29,7 +29,7 @@ class TestFileHandler(unittest.TestCase):
 
   def test_open_a_file_to_write(self):
     fh = FileHandler.create_file(self.filename, "w")
-    contents = "This is the files contents"
+    contents = b"This is the files contents"
     fh.write(contents)
     fh.close()
     fob = io.open(self.filename, "rb")
@@ -38,7 +38,7 @@ class TestFileHandler(unittest.TestCase):
 
   def test_chunked_writing(self):
     fh = FileHandler.create_file(self.filename, "w")
-    chunk = "This is the files contents"
+    chunk = b"This is the files contents"
     for i in range(5):
       fh.write(chunk)
     fh.close()
@@ -50,7 +50,7 @@ class TestFileHandler(unittest.TestCase):
     filename = "%s/data/example_file.txt" % (mydir)
     fh = FileHandler.create_file(filename, "r")
     data = fh.read(5)
-    self.assertEquals(data, "My na")
+    self.assertEquals(data, b"My na")
 
   def test_op_on_closed_file(self):
     with self.assertRaises(IOError):
