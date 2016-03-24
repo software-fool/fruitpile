@@ -16,6 +16,16 @@ class State(Base):
   def __repr__(self):
     return "<State(%s)>" % (self.name)
 
+class Repo(Base):
+  __tablename__ = 'repos'
+
+  # The repo id primary key
+  id = Column(Integer, primary_key=True)
+  # The repo name
+  name = Column(String(60), nullable=False)
+  path = Column(String, nullable=False)
+  repo_type = Column(String)
+  filesets = relationship("FileSet")
 
 class FileSet(Base):
   __tablename__ = 'filesets'
@@ -23,9 +33,11 @@ class FileSet(Base):
   id = Column(Integer, primary_key=True)
   name = Column(String, nullable=False)
   binfiles = relationship("BinFile")
+  repo_id = Column(Integer, ForeignKey('repos.id'), nullable=False)
+  repo = relationship("Repo", back_populates="filesets")
 
   def __repr__(self):
-    return "<FileSet(%s)>" % (self.name)
+    return "<FileSet(%s in %s)>" % (self.name, self.repo.name)
 
 
 class BinFile(Base):
@@ -33,7 +45,7 @@ class BinFile(Base):
 
   id = Column(Integer, primary_key=True)
   # The fileset this file belongs to
-  fileset_id = Column(Integer, ForeignKey('filesets.id'))
+  fileset_id = Column(Integer, ForeignKey('filesets.id'), nullable=False)
   fileset = relationship("FileSet", back_populates="binfiles")
 
   # The name is the basename of the object - what's called
@@ -47,7 +59,7 @@ class BinFile(Base):
   # Whether the file is a primary file type or an auxilliary file
   primary = Column(Boolean, nullable=False)
   # The state of the file (references the state table to allow state flexibility)
-  state_id = Column(Integer, ForeignKey('states.id'))
+  state_id = Column(Integer, ForeignKey('states.id'), nullable=False)
   state = relationship("State")
   # When the entry was first added
   create_date = Column(DateTime, nullable=False)
