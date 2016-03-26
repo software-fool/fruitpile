@@ -58,7 +58,7 @@ class FileManager(object):
     logger.debug("opening file %s with mode %s" % (path, mode))
     filedir = os.path.dirname(dest)
     if not os.path.isdir(filedir):
-      os.makedirs(filedir, 0700)
+      os.makedirs(filedir, 0o700)
     fh = FileHandler.create_file(dest, mode)
     return fh
 

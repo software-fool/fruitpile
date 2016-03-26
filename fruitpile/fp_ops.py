@@ -14,16 +14,16 @@
 # You should have received a copy of the GNU General Public License
 # along with Fruitpile.  If not, see <http://www.gnu.org/licenses/>.
 
-from db.schema import *
+from .db.schema import *
 from sqlalchemy.orm import sessionmaker
 from importlib import import_module
-from fp_exc import *
+from .fp_exc import *
 import os
 from datetime import datetime
 from hashlib import sha1, sha256, sha512
 from shutil import copyfileobj
 import io
-from repo.filemanager import FileManager, FileHandler
+from .repo.filemanager import FileManager, FileHandler
 
 def _checksum_file(fob, hasher):
   m = hasher()

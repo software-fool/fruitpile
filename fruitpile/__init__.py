@@ -14,5 +14,5 @@
 # You should have received a copy of the GNU General Public License
 # along with Fruitpile.  If not, see <http://www.gnu.org/licenses/>.
 
-from fp_ops import *
-from fp_exc import *
+from .fp_ops import *
+from .fp_exc import *
