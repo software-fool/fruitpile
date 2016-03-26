@@ -32,7 +32,7 @@ def _checksum_file(fob, hasher):
   m = hasher()
   while True:
     chunk = fob.read(128*1024)
-    if chunk == "":
+    if len(chunk) == 0:
       break
     m.update(chunk)
   return m.hexdigest()
@@ -88,7 +88,11 @@ class Fruitpile(object):
     self.repo.close()
     self.session.close()
     self.engine.dispose()
-    os.remove(self.lockpath)
+    try:
+      os.remove(self.lockpath)
+    except OSError as exc:
+      if exc[0] != 2:
+        raise
     self.lockpath = None
 
   def  __del__(self):
@@ -135,7 +139,10 @@ class Fruitpile(object):
     # is consistent with the file store
     srcfob.seek(0, 0)
     copyfileobj(srcfob, snkfob)
+    srcfob.close()
+    snkfob.close()
     self.session.commit()
+    return bf
 
   def list_files(self):
     bfs = self.session.query(BinFile).all()

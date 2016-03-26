@@ -13,6 +13,7 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Fruitpile.  If not, see <http://www.gnu.org/licenses/>.
+from __future__ import print_function
 import unittest
 import io
 import os
@@ -28,10 +29,13 @@ from fruitpile.db.schema import *
 # Destroys the entire tree of data (python equivalent of rm -rf)
 def clear_tree(path):
   if os.path.exists(path) and os.path.isdir(path):
-    for root, dirs, files in os.walk(path):
+    for root, dirs, files in os.walk(path, topdown=False):
       for f in files:
         os.remove(os.path.join(root,f))
-    os.removedirs(path)
+      for d in dirs:
+        if os.path.exists(d):
+          os.rmdir(d)
+      os.rmdir(root)
 
 class TestFruitpileInitOperations(unittest.TestCase):
 
@@ -157,6 +161,85 @@ class TestFruitpileAddFileSetOperations(unittest.TestCase):
       fss1.append(self.fp.add_new_fileset(name="test-%d" % (i)))
     fss2 = self.fp.list_filesets()
     self.assertEquals(fss1, fss2)
+
+
+
+class TestFruitpileBinFileOperations(unittest.TestCase):
+
+  def setUp(self):
+    self.store_path = "/tmp/store%d" % (os.getpid())
+    clear_tree(self.store_path)
+    fp = Fruitpile(self.store_path)
+    fp.init()
+    fp.open()
+    self.fp = fp
+
+  def tearDown(self):
+    self.fp.close()
+    clear_tree(self.store_path)
+
+  def test_add_a_new_fileset_and_file(self):
+    bfs = self.fp.list_files()
+    self.assertEquals(bfs, [])
+    fs =self.fp.add_new_fileset(name="test-1")
+    filename = "%s/data/example_file.txt" % (mydir)
+    bf = self.fp.add_file(
+        source_file=filename,
+        fileset_id=fs.id,
+        name="requirements.txt",
+        path="deploy",
+        version="1",
+        revision="123",
+        primary=True,
+        source="buildbot")
+    bfs = self.fp.list_files()
+    self.assertEquals(len(bfs), 1)
+    self.assertEquals(bfs[0], bf)
+
+  def test_add_multiple_files_to_fileset(self):
+    bfs0 = self.fp.list_files()
+    self.assertEquals(bfs0, [])
+    fs = self.fp.add_new_fileset(name="test-1")
+    filename = "%s/data/example_file.txt" % (mydir)
+    bfs1 = []
+    for i in range(10):
+      bfs1.append(
+          self.fp.add_file(
+              source_file=filename,
+              fileset_id=fs.id,
+              name="requirements-%d.txt" % (i),
+              path="deploy",
+              version="1",
+              revision="123",
+              primary=True,
+              source="buildbot")
+      )
+    self.assertEquals(len(bfs1), 10)
+    bfs2 = self.fp.list_files()
+    self.assertEquals(bfs1, bfs2)
+
+  def test_add_multiple_files_to_multiple_filesets(self):
+    bfs0 = self.fp.list_files()
+    self.assertEquals(bfs0, [])
+    fss = []
+    for i in range(3):
+      fss.append(self.fp.add_new_fileset(name="test-%d" % (i)))
+    bfs2 = []
+    filename = "%s/data/example_file.txt" % (mydir)
+    for j in range(12):
+      bfs2.append(self.fp.add_file(
+          source_file=filename,
+          fileset_id = fss[j % 3].id,
+          name="requirements-%d.txt" % (j),
+          path="deploy",
+          version="%d" % (j),
+          revision="123",
+          primary=True,
+          source="buildbot")
+              )
+    self.assertEquals(len(bfs2), 12)
+    bfs3 = self.fp.list_files()
+    self.assertEquals(bfs2, bfs3)
 
 if __name__ == "__main__":
   unittest.main()
