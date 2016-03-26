@@ -23,7 +23,7 @@ import sqlite3
 mydir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
 sys.path.append(os.path.dirname(mydir))
 
-from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists
+from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists, FPLBinFileExists
 from fruitpile.db.schema import *
 
 # Destroys the entire tree of data (python equivalent of rm -rf)
@@ -240,6 +240,64 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
     self.assertEquals(len(bfs2), 12)
     bfs3 = self.fp.list_files()
     self.assertEquals(bfs2, bfs3)
+
+  def test_add_same_file_and_path_twice_to_same_file_set(self):
+    bfs0 = self.fp.list_files()
+    self.assertEquals(bfs0, [])
+    fs = self.fp.add_new_fileset(name="test-1")
+    fs2 = self.fp.add_new_fileset(name="test-2")
+    filename = "%s/data/example_file.txt" % (mydir)
+    bf1 = self.fp.add_file(
+        source_file=filename,
+        fileset_id = fs.id,
+        name="requirements.txt",
+        path="deploy",
+        version="1",
+        revision="123",
+        primary=True,
+        source="buildbot")
+    with self.assertRaises(FPLBinFileExists):
+      bf2 = self.fp.add_file(
+          source_file=filename,
+          fileset_id = fs2.id,
+          name="requirements.txt",
+          path="deploy",
+          version="1",
+          revision="123",
+          primary=True,
+          source="buildbot")
+    bfs1 = self.fp.list_files()
+    self.assertEquals(len(bfs1), 1)
+    self.assertEquals(bfs1[0], bf1)
+
+  def test_add_same_name_to_same_file_set(self):
+    bfs0 = self.fp.list_files()
+    self.assertEquals(bfs0, [])
+    fs = self.fp.add_new_fileset(name="test-1")
+    filename = "%s/data/example_file.txt" % (mydir)
+    bf1 = self.fp.add_file(
+        source_file=filename,
+        fileset_id = fs.id,
+        name="requirements.txt",
+        path="deploy",
+        version="1",
+        revision="123",
+        primary=True,
+        source="buildbot")
+    with self.assertRaises(FPLBinFileExists):
+      bf2 = self.fp.add_file(
+          source_file = filename,
+          fileset_id = fs.id,
+          name ="requirements.txt",
+          path="deploy1",
+          version="1",
+          revision="123",
+          primary=True,
+          source="buildbot")
+    bfs1 = self.fp.list_files()
+    self.assertEquals(len(bfs1), 1)
+    self.assertEquals(bfs1[0], bf1)
+
 
 if __name__ == "__main__":
   unittest.main()

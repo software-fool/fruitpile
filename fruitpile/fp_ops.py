@@ -109,6 +109,7 @@ class Fruitpile(object):
     try:
       self.session.commit()
     except IntegrityError:
+      self.session.rollback()
       raise FPLFileSetExists("file set %s already exists in store" % (kwargs.get("name")))
     return fs
 
@@ -141,7 +142,11 @@ class Fruitpile(object):
     copyfileobj(srcfob, snkfob)
     srcfob.close()
     snkfob.close()
-    self.session.commit()
+    try:
+      self.session.commit()
+    except IntegrityError:
+      self.session.rollback()
+      raise FPLBinFileExists("binfile %s/%s in fileset (id=%d) already exists in store" % (name, path, kwargs.get("fileset_id")))
     return bf
 
   def list_files(self):

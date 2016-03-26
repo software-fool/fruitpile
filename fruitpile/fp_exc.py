@@ -28,3 +28,6 @@ class FPLRepoInUse(FruitpileError):
 
 class FPLFileSetExists(FruitpileError):
   pass
+
+class FPLBinFileExists(FruitpileError):
+  pass

@@ -16,6 +16,7 @@
 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
+from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine
 
@@ -58,6 +59,10 @@ class FileSet(Base):
 
 class BinFile(Base):
   __tablename__ = 'binfiles'
+  __table_args__ = (
+    UniqueConstraint('name', 'path'),
+    UniqueConstraint('fileset_id', 'name')
+  )
 
   id = Column(Integer, primary_key=True)
   # The fileset this file belongs to
