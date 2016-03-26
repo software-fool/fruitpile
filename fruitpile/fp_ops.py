@@ -118,7 +118,12 @@ class Fruitpile(object):
     return fss
 
   def add_file(self, **kwargs):
-    srcfob = io.open(kwargs.get("source_file"), "rb")
+    source_file = kwargs.get("source_file")
+    if not os.path.exists(source_file):
+      raise FPLSourceFileNotFound("%s cannot be found" % (source_file))
+    if not os.access(source_file, os.R_OK):
+      raise FPLSourceFilePermissionDenied("%s cannot be read" % (source_file))
+    srcfob = io.open(source_file, "rb")
     checksum = _checksum_file(srcfob, sha256)
     name = kwargs.get("name")
     path = kwargs.get("path")

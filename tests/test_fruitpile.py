@@ -23,7 +23,7 @@ import sqlite3
 mydir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
 sys.path.append(os.path.dirname(mydir))
 
-from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists, FPLBinFileExists
+from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists, FPLBinFileExists, FPLSourceFileNotFound, FPLSourceFilePermissionDenied
 from fruitpile.db.schema import *
 
 # Destroys the entire tree of data (python equivalent of rm -rf)
@@ -298,6 +298,39 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
     self.assertEquals(len(bfs1), 1)
     self.assertEquals(bfs1[0], bf1)
 
+  def test_add_missing_source_file(self):
+    fs = self.fp.add_new_fileset(name="test-1")
+    filename = "%s/data/example_file-1.txt" % (mydir)
+    with self.assertRaises(FPLSourceFileNotFound):
+      bf = self.fp.add_file(
+          source_file=filename,
+          fileset_id = fs.id,
+          name="requirements.txt",
+          path="deploy",
+          version="1",
+          revision="123",
+          primary=True,
+          source="buildbot")
+
+
+  def test_add_unreadable_file(self):
+    fs = self.fp.add_new_fileset(name="test-1")
+    unreadable_file = "/tmp/_unreadable_%d" % (os.getpid())
+    fob = io.open(unreadable_file, "wb")
+    fob.close()
+    os.chmod(unreadable_file, 0o000)
+    with self.assertRaises(FPLSourceFilePermissionDenied):
+      bf = self.fp.add_file(
+          source_file=unreadable_file,
+          fileset_id = fs.id,
+          name="requirements.txt",
+          path="deploy",
+          version="1",
+          revision="123",
+          primary=True,
+          source="buildbot")
+    os.chmod(unreadable_file, 0o644)
+    os.remove(unreadable_file)
 
 if __name__ == "__main__":
   unittest.main()

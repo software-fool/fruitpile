@@ -31,3 +31,9 @@ class FPLFileSetExists(FruitpileError):
 
 class FPLBinFileExists(FruitpileError):
   pass
+
+class FPLSourceFileNotFound(FruitpileError):
+  pass
+
+class FPLSourceFilePermissionDenied(FruitpileError):
+  pass
