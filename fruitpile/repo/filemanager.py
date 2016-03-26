@@ -36,11 +36,14 @@ class FileHandler(object):
 class FileManager(object):
   def __init__(self, repopath):
     self.repopath = repopath
-    self.db = self.os.path(repopath, "repodb")
 
   def open(self, path, mode):
-    logger.debug("opening file %s with mode %s")
-    fh = FileHandler.create_file(os.path.join(self.repopath, path), mode)
+    dest = os.path.join(self.repopath, path)
+    logger.debug("opening file %s with mode %s" % (path, mode))
+    filedir = os.path.dirname(dest)
+    if not os.path.isdir(filedir):
+      os.makedirs(filedir, 0700)
+    fh = FileHandler.create_file(dest, mode)
     return fh
 
 
