@@ -71,7 +71,7 @@ class Fruitpile(object):
     self.session.commit()
     return fs
 
-  def get_filesets(self, **kwargs):
+  def list_filesets(self, **kwargs):
     fss = self.session.query(FileSet).all()
     return fss
 
