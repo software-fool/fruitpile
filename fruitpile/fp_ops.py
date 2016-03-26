@@ -41,6 +41,7 @@ class Fruitpile(object):
   def __init__(self, path="store"):
     self.path=path
     self.dbpath = os.path.join(path,"fpl.db")
+    self.lockpath = None
 
   def open(self):
     if not os.path.exists(self.dbpath):
