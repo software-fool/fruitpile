@@ -47,7 +47,7 @@ class FileSet(Base):
   __tablename__ = 'filesets'
 
   id = Column(Integer, primary_key=True)
-  name = Column(String, nullable=False)
+  name = Column(String, unique=True, nullable=False)
   binfiles = relationship("BinFile")
   repo_id = Column(Integer, ForeignKey('repos.id'), nullable=False)
   repo = relationship("Repo", back_populates="filesets")

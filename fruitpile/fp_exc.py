@@ -26,4 +26,5 @@ class FPLExists(FruitpileError):
 class FPLRepoInUse(FruitpileError):
   pass
 
-
+class FPLFileSetExists(FruitpileError):
+  pass

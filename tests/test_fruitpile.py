@@ -22,8 +22,8 @@ import sqlite3
 mydir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
 sys.path.append(os.path.dirname(mydir))
 
-from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse
-
+from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists
+from fruitpile.db.schema import *
 
 # Destroys the entire tree of data (python equivalent of rm -rf)
 def clear_tree(path):
@@ -54,7 +54,8 @@ class TestFruitpileInitOperations(unittest.TestCase):
     rows = curs.fetchall()
     expected_tables = ["states","repos","filesets","binfiles"]
     for r in rows:
-      self.assertTrue(r[1] in expected_tables)
+      if r[0] == "table":
+        self.assertTrue(r[1] in expected_tables)
     curs = conn.execute("SELECT * FROM repos")
     rows = curs.fetchall()
     self.assertEquals(len(rows), 1)
@@ -119,6 +120,43 @@ class TestFruitpileOpenOperations(unittest.TestCase):
       fp.open()
     os.chmod(self.store_path, 0o700)
 
+class TestFruitpileAddFileSetOperations(unittest.TestCase):
+
+  def setUp(self):
+    self.store_path = "/tmp/store%d" % (os.getpid())
+    clear_tree(self.store_path)
+    fp = Fruitpile(self.store_path)
+    fp.init()
+    fp.open()
+    self.fp = fp
+
+  def tearDown(self):
+    self.fp.close()
+    clear_tree(self.store_path)
+
+  def test_list_filesets(self):
+    filesets = self.fp.list_filesets()
+    self.assertEquals(filesets, [])
+
+  def test_add_new_fileset(self):
+    fileset = self.fp.add_new_fileset(name="test-1")
+    self.assertEquals(str(fileset), "<FileSet(test-1 in default)>")
+    filesets = self.fp.list_filesets()
+    self.assertEquals(len(filesets), 1)
+    self.assertEquals(filesets[0], fileset)
+
+  def test_add_duplicate_fileset(self):
+    fs1 = self.fp.add_new_fileset(name="test-1")
+    self.assertEquals(str(fs1), "<FileSet(test-1 in default)>")
+    with self.assertRaises(FPLFileSetExists):
+      fs2 = self.fp.add_new_fileset(name="test-1")
+
+  def test_add_multiple_filesets(self):
+    fss1 = []
+    for i in range(10):
+      fss1.append(self.fp.add_new_fileset(name="test-%d" % (i)))
+    fss2 = self.fp.list_filesets()
+    self.assertEquals(fss1, fss2)
 
 if __name__ == "__main__":
   unittest.main()

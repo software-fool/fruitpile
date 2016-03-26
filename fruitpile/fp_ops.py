@@ -16,6 +16,7 @@
 
 from .db.schema import *
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import IntegrityError
 from importlib import import_module
 from .fp_exc import *
 import os
@@ -69,7 +70,10 @@ class Fruitpile(object):
   def add_new_fileset(self, **kwargs):
     fs = FileSet(name=kwargs.get("name"), repo=self.repo_data)
     self.session.add(fs)
-    self.session.commit()
+    try:
+      self.session.commit()
+    except IntegrityError:
+      raise FPLFileSetExists("file set %s already exists in store" % (kwargs.get("name")))
     return fs
 
   def list_filesets(self, **kwargs):
