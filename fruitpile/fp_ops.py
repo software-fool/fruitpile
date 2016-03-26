@@ -67,6 +67,38 @@ class Fruitpile(object):
     self.repo_data = repo
     self.repo = FileManager(self.repo_data.path)
 
+  def init(self, **kwargs):
+    if os.path.exists(self.path):
+      raise FPLExists('cannot initialise the repo because the path already exists')
+    if os.access(self.path, os.W_OK|os.R_OK|os.X_OK):
+      raise FPLConfiguration('cannot access the target directory')
+    os.mkdir(self.path)
+    self.engine = create_engine('sqlite:///%s' % (self.dbpath))
+    Base.metadata.create_all(bind=self.engine)
+    Session = sessionmaker(bind=self.engine)
+    self.session = Session()
+    rp = Repo(name="default", path=self.path, repo_type="FileManager")
+    self.session.add(rp)
+    ss = []
+    for sname in ["untested","testing","tested","approved","released","withdrawn"]:
+      self.session.add(State(name=sname))
+    self.session.commit()
+
+  def close(self):
+    self.repo.close()
+    self.session.close()
+    self.engine.dispose()
+    os.remove(self.lockpath)
+    self.lockpath = None
+
+  def  __del__(self):
+    # If we go out of scope and the object's being destroyed make sure
+    # we remove the lock file.  Users should call close on the repo
+    # before saying goodbye, but this should protect against cases
+    # of unexpected termination
+    if self.lockpath:
+        os.remove(self.lockpath)
+
   def add_new_fileset(self, **kwargs):
     fs = FileSet(name=kwargs.get("name"), repo=self.repo_data)
     self.session.add(fs)
@@ -109,34 +141,3 @@ class Fruitpile(object):
     bfs = self.session.query(BinFile).all()
     return bfs
 
-  def init(self, **kwargs):
-    if os.path.exists(self.path):
-      raise FPLExists('cannot initialise the repo because the path already exists')
-    if os.access(self.path, os.W_OK|os.R_OK|os.X_OK):
-      raise FPLConfiguration('cannot access the target directory')
-    os.mkdir(self.path)
-    self.engine = create_engine('sqlite:///%s' % (self.dbpath))
-    Base.metadata.create_all(bind=self.engine)
-    Session = sessionmaker(bind=self.engine)
-    self.session = Session()
-    rp = Repo(name="default", path=self.path, repo_type="FileManager")
-    self.session.add(rp)
-    ss = []
-    for sname in ["untested","testing","tested","approved","released","withdrawn"]:
-      self.session.add(State(name=sname))
-    self.session.commit()
-
-  def close(self):
-    self.repo.close()
-    self.session.close()
-    self.engine.dispose()
-    os.remove(self.lockpath)
-    self.lockpath = None
-
-  def  __del__(self):
-    # If we go out of scope and the object's being destroyed make sure
-    # we remove the lock file.  Users should call close on the repo
-    # before saying goodbye, but this should protect against cases
-    # of unexpected termination
-    if self.lockpath:
-        os.remove(self.lockpath)
