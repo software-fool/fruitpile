@@ -22,7 +22,7 @@ import sqlite3
 mydir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
 sys.path.append(os.path.dirname(mydir))
 
-from fruitpile import Fruitpile, FPLExists
+from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse
 
 
 # Destroys the entire tree of data (python equivalent of rm -rf)
@@ -77,6 +77,47 @@ class TestFruitpileInitOperations(unittest.TestCase):
       fp2 = Fruitpile(self.store_path)
       fp2.init()
 
+
+class TestFruitpileOpenOperations(unittest.TestCase):
+
+  def setUp(self):
+    self.store_path = "/tmp/store%d" % (os.getpid())
+    clear_tree(self.store_path)
+
+  def tearDown(self):
+    clear_tree(self.store_path)
+
+  def test_open_non_existent_repo(self):
+    with self.assertRaises(FPLConfiguration):
+      fp = Fruitpile(self.store_path)
+      fp.open()
+
+  def test_open_existing_repo(self):
+    fp = Fruitpile(self.store_path)
+    fp.init()
+    fp.open()
+    self.assertNotEquals(fp.session, None)
+    self.assertEquals(fp.repo.__class__.__name__, "FileManager")
+
+  def test_reopen_existing_repo(self):
+    fp1 = Fruitpile(self.store_path)
+    fp1.init()
+    fp1.open()
+    fp2 = Fruitpile(self.store_path)
+    with self.assertRaises(FPLRepoInUse):
+      fp2.open()
+      self.assertEquals(fp1, fp2)
+
+  def test_open_on_unreadable_permissions(self):
+    fp = Fruitpile(self.store_path)
+    fp.init()
+    fp.open()
+    fp.close()
+    os.chmod(self.store_path, 0o000)
+    fp = Fruitpile(self.store_path)
+    with self.assertRaises(FPLConfiguration):
+      fp.open()
+    os.chmod(self.store_path, 0o700)
 
 
 if __name__ == "__main__":

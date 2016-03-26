@@ -24,6 +24,8 @@ from hashlib import sha1, sha256, sha512
 from shutil import copyfileobj
 import io
 from .repo.filemanager import FileManager, FileHandler
+import socket
+import pwd
 
 def _checksum_file(fob, hasher):
   m = hasher()
@@ -43,6 +45,15 @@ class Fruitpile(object):
   def open(self):
     if not os.path.exists(self.dbpath):
       raise FPLConfiguration('fruitpile instance not found')
+    self.lockpath = os.path.join(self.path, ".lock")
+    self.hostname = socket.gethostname()
+    self.pid = os.getpid()
+    self.owner = os.getuid()
+    self.owner_name = pwd.getpwuid(self.owner)[0]
+    try:
+      os.symlink("%s-%d-%d=%s" % (self.hostname, self.pid, self.owner, self.owner_name), self.lockpath)
+    except OSError:
+      raise FPLRepoInUse("%s path already in use %s" % (self.dbpath, os.readlink(self.lockpath)))
     self.engine = create_engine('sqlite:///%s' % (self.dbpath))
     Session = sessionmaker(bind=self.engine)
     self.session = Session()
@@ -109,4 +120,18 @@ class Fruitpile(object):
     for sname in ["untested","testing","tested","approved","released","withdrawn"]:
       self.session.add(State(name=sname))
     self.session.commit()
-    
+
+  def close(self):
+    self.repo.close()
+    self.session.close()
+    self.engine.dispose()
+    os.remove(self.lockpath)
+    self.lockpath = None
+
+  def  __del__(self):
+    # If we go out of scope and the object's being destroyed make sure
+    # we remove the lock file.  Users should call close on the repo
+    # before saying goodbye, but this should protect against cases
+    # of unexpected termination
+    if self.lockpath:
+        os.remove(self.lockpath)

@@ -62,5 +62,9 @@ class FileManager(object):
     fh = FileHandler.create_file(dest, mode)
     return fh
 
+  def close(self):
+    # nothing to do
+    pass
+
 
 

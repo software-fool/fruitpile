@@ -23,3 +23,7 @@ class FPLConfiguration(FruitpileError):
 class FPLExists(FruitpileError):
   pass
 
+class FPLRepoInUse(FruitpileError):
+  pass
+
+
