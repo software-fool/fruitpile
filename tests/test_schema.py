@@ -231,6 +231,54 @@ class TestSchemaPermission(unittest.TestCase):
       self.session.commit()
     self.session.rollback()
 
+class TestSchemaUsers(unittest.TestCase):
+
+  def setUp(self):
+    self.engine, self.session = setUpDatabase()
+
+  def tearDown(self):
+    self.session.close()
+
+  def test_create_user(self):
+    perm = Permission(name="GOD", desc="God power to do everything")
+    self.session.add(perm)
+    self.session.commit()
+    user = User(uid=1046, name="db")
+    user_perms = UserPermission(user_id=1046, perm_id=perm.id)
+    self.session.add_all([user,user_perms])
+    self.session.commit()
+    perms_for = self.session.query(UserPermission).all()
+    self.assertEquals(len(perms_for), 1)
+    perms_for_1046 = perms_for[0]
+    self.assertEquals(perms_for_1046.user_id, 1046)
+    self.assertEquals(perms_for_1046.user.name, "db")
+    self.assertEquals(perms_for_1046.perm_id, perm.id)
+    self.assertEquals(perms_for_1046.perm.name, "GOD")
+
+  def test_create_user_with_permissions_subset(self):
+    perm_names = [("ADD_FILESET","Grant permission to add a fileset"),
+                  ("ADD_FILES","Grant permission to add a file"),
+                  ("LIST_FILESETS","Grant permission to list all filesets"),
+                  ("LIST_FILES","Grant permission to list all files")]
+    ps = []
+    for name, desc in perm_names:
+      ps.append(Permission(name=name, desc=desc))
+    self.session.add_all(ps)
+    self.session.commit()
+    user = User(uid=1046, name="db")
+    user_perms = [UserPermission(user_id=1046, perm_id=ps[2].id),
+                  UserPermission(user_id=1046, perm_id=ps[3].id)]
+    self.session.add_all([user]+user_perms)
+    self.session.commit()
+    users0 = self.session.query(User).all()
+    user0 = users0[0]
+    self.assertEquals(len(users0), 1)
+    self.assertEquals(user0.uid, 1046)
+    self.assertEquals(user0.user_perms[0].perm, ps[2])
+    self.assertEquals(user0.user_perms[1].perm ,ps[3])
+    self.assertNotIn(ps[0], user0.user_perms)
+    self.assertNotIn(ps[1], user0.user_perms)
+    
 
 if __name__ == "__main__":
   unittest.main()

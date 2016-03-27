@@ -16,7 +16,7 @@
 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
-from sqlalchemy.schema import UniqueConstraint
+from sqlalchemy.schema import UniqueConstraint, PrimaryKeyConstraint
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
@@ -38,11 +38,37 @@ class Permission(Base):
   __tablename__ = 'permissions'
 
   id = Column(Integer, primary_key=True)
+  user_perms = relationship('UserPermission')
   name = Column(String(20), unique=True, nullable=False)
   desc = Column(String, nullable=False)
 
   def __repr__(self):
     return "<Permission(%s=%d)>" % (self.name, self.id)
+
+class User(Base):
+  __tablename__ = 'users'
+
+  uid = Column(Integer, primary_key=True)
+  user_perms = relationship('UserPermission')
+  name = Column(String(20), unique=True, nullable=False)
+
+  def __repr__(self):
+    return "<User(%s=%d)>" % (self.name, self.id)
+
+class UserPermission(Base):
+  __tablename__ = 'user_perms'
+  __table_args__ = (
+    PrimaryKeyConstraint('user_id','perm_id'),
+  )
+
+  user_id = Column(Integer, ForeignKey('users.uid'), nullable=False)
+  user = relationship('User', back_populates='user_perms')
+  perm_id = Column(Integer, ForeignKey('permissions.id'), nullable=False)
+  perm = relationship('Permission', back_populates='user_perms')
+
+
+  def __repr__(self):
+    return "<UserPermission(uid=%d,permid=%d)>" % (self.user_id, self.perm_id)
 
 class Repo(Base):
   __tablename__ = 'repos'

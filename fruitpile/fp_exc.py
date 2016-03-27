@@ -37,3 +37,6 @@ class FPLSourceFileNotFound(FruitpileError):
 
 class FPLSourceFilePermissionDenied(FruitpileError):
   pass
+
+class FPLPermissionDenied(FruitpileError):
+  pass
