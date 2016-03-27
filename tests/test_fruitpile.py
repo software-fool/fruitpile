@@ -57,7 +57,15 @@ class TestFruitpileInitOperations(unittest.TestCase):
     self.assertNotEquals(conn, None)
     curs = conn.execute("SELECT * FROM SQLITE_MASTER")
     rows = curs.fetchall()
-    expected_tables = ["states","repos","filesets","binfiles","permissions","users","user_perms"]
+    expected_tables = ["states",
+                       "transfuncs",
+                       "transitions",
+                       "permissions",
+                       "users",
+                       "user_perms",
+                       "repos",
+                       "filesets",
+                       "binfiles"]
     for r in rows:
       if r[0] == "table":
         self.assertTrue(r[1] in expected_tables)

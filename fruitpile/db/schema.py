@@ -16,7 +16,7 @@
 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
-from sqlalchemy.schema import UniqueConstraint, PrimaryKeyConstraint
+from sqlalchemy.schema import UniqueConstraint, PrimaryKeyConstraint, CheckConstraint
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
@@ -34,6 +34,39 @@ class State(Base):
   def __repr__(self):
     return "<State(%s)>" % (self.name)
 
+class TransitionFunction(Base):
+  __tablename__ = 'transfuncs'
+
+  id = Column(Integer, primary_key=True, nullable=False)
+  transfn = Column(String, unique=True, nullable=False)
+  transitions = relationship('Transition')
+
+  def __repr__(self):
+    return "<TransitionFunction(%s)>" % (self.transfn)
+  
+class Transition(Base):
+  __tablename__ = 'transitions'
+  __table_args__ = (
+    PrimaryKeyConstraint('start_id','end_id'),
+    CheckConstraint('start_id != end_id')
+  )
+
+  start_id = Column(Integer, ForeignKey('states.id'), nullable=False)
+  end_id = Column(Integer, ForeignKey('states.id'), nullable=False)
+  start = relationship('State', foreign_keys=[start_id])
+  end = relationship('State', foreign_keys=[end_id])
+  transfn_id = Column(Integer, ForeignKey('transfuncs.id'))
+  transfn = relationship('TransitionFunction', back_populates='transitions')
+  perm_id = Column(Integer, ForeignKey('permissions.id'), nullable=False)
+  perm = relationship('Permission', back_populates='transitions')
+
+  def __repr__(self):
+    if self.transfn and self.transfn != "":
+      transfn_str = "with transfn=%s" % (self.transfn)
+    else:
+      transfn_str = ""
+    return "<Transition(%s=>%s%s>" % (self.start.name,self.end.name, transfn_str)
+
 class Permission(Base):
   __tablename__ = 'permissions'
 
@@ -41,6 +74,7 @@ class Permission(Base):
   user_perms = relationship('UserPermission')
   name = Column(String(20), unique=True, nullable=False)
   desc = Column(String, nullable=False)
+  transitions = relationship('Transition')
 
   def __repr__(self):
     return "<Permission(%s=%d)>" % (self.name, self.id)

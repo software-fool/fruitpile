@@ -74,6 +74,47 @@ class TestSchemaState(unittest.TestCase):
       self.session.commit()
     self.session.rollback()
 
+  def test_create_state_transitions(self):
+    perm = Permission(name="A_PERMISSION", desc="A permission for testing")
+    st1 = State(name="start")
+    st2 = State(name="in-progress")
+    st3 = State(name="in-review")
+    st4 = State(name="approved")
+    st5 = State(name="rejected")
+    self.session.add_all([perm,st1,st2,st3,st4,st5])
+    self.session.commit()
+    trns1 = Transition(start_id=st1.id, end_id=st2.id, perm=perm)
+    trns2 = Transition(start_id=st1.id, end_id=st5.id, perm=perm)
+    self.session.add_all([trns1,trns2])
+    self.session.commit()
+    ts0 = self.session.query(Transition).all()
+    self.assertEquals(len(ts0), 2)
+    self.assertEquals(ts0[0].start_id, st1.id)
+    self.assertEquals(ts0[0].end_id, st2.id)
+    self.assertEquals(ts0[0].perm_id, perm.id)
+    self.assertEquals(ts0[1].start_id, st1.id)
+    self.assertEquals(ts0[1].end_id, st5.id)
+    self.assertEquals(ts0[1].perm_id, perm.id)
+
+  def test_create_state_transition_with_transition_function(self):
+    st1 = State(name="begin")
+    st2 = State(name="end")
+    transfn = TransitionFunction(transfn="ensure_reviewed")
+    perm = Permission(name="A_PERMISSION", desc="A permission for testing")
+    self.session.add_all([st1,st2,transfn,perm])
+    self.session.commit()
+    trns1 = Transition(start_id=st1.id, end_id=st2.id, perm=perm, transfn_id=transfn.id)
+    self.session.add(trns1)
+    self.session.commit()
+    ts = self.session.query(Transition).all()
+    self.assertEquals(len(ts), 1)
+    ts0 = ts[0]
+    self.assertEquals(ts0.start_id, st1.id)
+    self.assertEquals(ts0.end_id, st2.id)
+    self.assertEquals(ts0.perm_id, perm.id)
+    self.assertEquals(ts0.transfn_id, transfn.id)
+
+
 class TestSchemaRepo(unittest.TestCase):
 
   def setUp(self):
