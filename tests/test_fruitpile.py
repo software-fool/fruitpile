@@ -23,7 +23,7 @@ import sqlite3
 mydir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
 sys.path.append(os.path.dirname(mydir))
 
-from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists, FPLBinFileExists, FPLSourceFileNotFound, FPLSourceFilePermissionDenied
+from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists, FPLBinFileExists, FPLSourceFileNotFound, FPLSourceFilePermissionDenied, FPLPermissionDenied
 from fruitpile.db.schema import *
 from fruitpile.fp_constants import Capability
 
@@ -328,7 +328,6 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
           primary=True,
           source="buildbot")
 
-
   def test_add_unreadable_file(self):
     fs = self.fp.add_new_fileset(name="test-1", uid=1046)
     unreadable_file = "/tmp/_unreadable_%d" % (os.getpid())
@@ -348,6 +347,33 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
           source="buildbot")
     os.chmod(unreadable_file, 0o644)
     os.remove(unreadable_file)
+
+  def test_add_fileset_without_permission(self):
+    with self.assertRaises(FPLPermissionDenied):
+      fs = self.fp.add_new_fileset(name="test-1", uid=1047)
+
+  def test_add_fileset_and_file_without_file_permission(self):
+    session = self.fp.session
+    user = User(uid=1047, name="test_user")
+    perm1 = UserPermission(user_id=1047, perm_id=Capability.ADD_FILESET)
+    perm2 = UserPermission(user_id=1047, perm_id=Capability.LIST_FILESETS)
+    perm3 = UserPermission(user_id=1047, perm_id=Capability.LIST_FILES)
+    session.add_all([user,perm1,perm2,perm3])
+    session.commit()
+    fs = self.fp.add_new_fileset(name="test-1", uid=1047)
+    filename = "%s/data/example_file.txt" % (mydir)
+    with self.assertRaises(FPLPermissionDenied):
+      bf = self.fp.add_file(
+        uid=1047,
+        source_file=filename,
+        fileset_id = fs.id,
+        name="requirements.txt",
+        path="deploy",
+        version="1",
+        revision="123",
+        primary=True,
+        source="buildbot")
+
 
 if __name__ == "__main__":
   unittest.main()
