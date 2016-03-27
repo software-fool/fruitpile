@@ -42,16 +42,11 @@ def build_permissions_table(obj):
     perm = Permission(name=name, desc=desc)
     obj.session.add(perm)
   obj.session.commit()
-  all_perms = obj.session.query(Permission).all()
-  d = {}
-  for perm in all_perms:
-    d[perm.name] = perm.id
-  perms = AllPermissions(d)
-  obj.assertEquals(perms.ADD_FILESET, 1)
-  obj.assertEquals(perms.ADD_FILES, 2)
-  obj.assertEquals(perms.LIST_FILESETS, 3)
-  obj.assertEquals(perms.LIST_FILES, 4)
-  return perms
+  AllPermissions.create(obj.session)
+  obj.assertEquals(AllPermissions.ADD_FILESET, 1)
+  obj.assertEquals(AllPermissions.ADD_FILES, 2)
+  obj.assertEquals(AllPermissions.LIST_FILESETS, 3)
+  obj.assertEquals(AllPermissions.LIST_FILES, 4)
 
 
 class TestAllPermissions(unittest.TestCase):
@@ -66,9 +61,9 @@ class TestAllPermissions(unittest.TestCase):
     build_permissions_table(self)
 
   def test_all_permissions_access_unknown_permission(self):
-    perms = build_permissions_table(self)
+    build_permissions_table(self)
     with self.assertRaises(AttributeError):
-      _ = perms.ARCHIVE_FILESET
+      _ = AllPermissions.ARCHIVE_FILESET
 
 
 class TestPermissionManager(unittest.TestCase):
@@ -82,15 +77,15 @@ class TestPermissionManager(unittest.TestCase):
   def test_create_permission_manager(self):
     build_permissions_table(self)
     perm_man = PermissionManager(self.session)
-    self.assertEquals(perm_man.perms.ADD_FILESET, 1)
-    self.assertEquals(perm_man.perms.ADD_FILES, 2)
-    self.assertEquals(perm_man.perms.LIST_FILESETS, 3)
-    self.assertEquals(perm_man.perms.LIST_FILES, 4)
+    self.assertEquals(AllPermissions.ADD_FILESET, 1)
+    self.assertEquals(AllPermissions.ADD_FILES, 2)
+    self.assertEquals(AllPermissions.LIST_FILESETS, 3)
+    self.assertEquals(AllPermissions.LIST_FILES, 4)
 
   def test_get_all_permissions_from_permission_manager(self):
     build_permissions_table(self)
     perm_man = PermissionManager(self.session)
-    self.assertEquals(set(perm_man.get_all_permissions()), 
+    self.assertEquals(set(AllPermissions.keys()),
                       set(["ADD_FILESET","ADD_FILES",
                            "LIST_FILESETS","LIST_FILES"]))
 
@@ -101,8 +96,9 @@ class TestPermissionManager(unittest.TestCase):
     perm_man = PermissionManager(self.session)
     perms = self.session.query(UserPermission).filter(UserPermission.user_id==1046).all()
     perm_ids = [perm.id for perm in perms]
+    self.assertEquals(perm_ids, [])
     with self.assertRaises(FPLPermissionDenied):
-      perm_man.check_permission(perm_man.perms.LIST_FILESETS, set([]))
+      perm_man.check_permission(AllPermissions.LIST_FILESETS, set(perm_ids))
 
   def test_check_permission_with_uid_with_some_permissions(self):
     build_permissions_table(self)
@@ -113,10 +109,10 @@ class TestPermissionManager(unittest.TestCase):
     perm_man = PermissionManager(self.session)
     user_perms = self.session.query(UserPermission).filter(UserPermission.user_id == 1046).all()
     perm_ids = [user_perm.perm_id for user_perm in user_perms]
-    perm_man.check_permission(perm_man.perms.LIST_FILESETS, set(perm_ids))
+    perm_man.check_permission(AllPermissions.LIST_FILESETS, set(perm_ids))
     self.assertTrue(True)
     with self.assertRaises(FPLPermissionDenied):
-      perm_man.check_permission(perm_man.perms.ADD_FILESET, set(perm_ids))
+      perm_man.check_permission(AllPermissions.ADD_FILESET, set(perm_ids))
 
 
 

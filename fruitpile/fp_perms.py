@@ -17,20 +17,29 @@
 from .db.schema import *
 from .fp_exc import FPLPermissionDenied
 
-class AllPermissions(dict):
-  def __getattr__(self, name):
-    if name in self:
-      return self[name]
-    raise AttributeError
+class AllPermissions(object):
+  d = {}
+
+  @staticmethod
+  def create(session):
+    perms = session.query(Permission).all()
+    for perm in perms:
+      AllPermissions.add_item(perm.name, perm.id)
+
+  @classmethod
+  def add_item(cls, name, value):
+    if not AllPermissions.d.has_key(name):
+      AllPermissions.d[name] = value
+      setattr(cls, name, value)
+
+  @staticmethod
+  def keys():
+    return AllPermissions.d.keys()
 
 class PermissionManager(object):
 
   def __init__(self, session):
-    perms = session.query(Permission).all()
-    d = {}
-    for perm in perms:
-      d[perm.name] = perm.id
-    self.perms = AllPermissions(d)
+    AllPermissions.create(session)
 
   def get_all_permissions(self):
     return self.perms.keys()
@@ -39,9 +48,10 @@ class PermissionManager(object):
     # Sanity check that we got a set of user permissions through
     assert type(user_perms) == type(set())
     if permission not in user_perms:
+      # The user doesn't have suitable permission to do this operation.
+      # Raising an exception simplifies processing elsewhere since we
+      # can allow the exception to propogate up through the stack until
+      # we need to report it to the user.
       raise FPLPermissionDenied("user does not have permission %s" % (permission))
-    
-  def get_perm_id(self, name):
-    return self.perms[name]
 
   
