@@ -107,12 +107,10 @@ class TestPermissionManager(unittest.TestCase):
     self.session.add(UserPermission(user_id=1046,perm_id=3))
     self.session.commit()
     perm_man = PermissionManager(self.session)
-    user_perms = self.session.query(UserPermission).filter(UserPermission.user_id == 1046).all()
-    perm_ids = [user_perm.perm_id for user_perm in user_perms]
-    perm_man.check_permission(Capability.LIST_FILESETS, set(perm_ids))
+    perm_man.check_permission(1046, Capability.LIST_FILESETS)
     self.assertTrue(True)
     with self.assertRaises(FPLPermissionDenied):
-      perm_man.check_permission(Capability.ADD_FILESET, set(perm_ids))
+      perm_man.check_permission(1046, Capability.ADD_FILESET)
 
 
 

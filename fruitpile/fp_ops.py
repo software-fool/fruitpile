@@ -89,9 +89,12 @@ class Fruitpile(object):
     ss = []
     for sname in ["untested","testing","tested","approved","released","withdrawn"]:
       self.session.add(State(name=sname))
+    uid = kwargs.get("uid")
+    self.session.add(User(uid=uid, name=kwargs.get("username")))
     for name in Capability.keys():
       cap = Capability.get(name)
       self.session.add(Permission(id=cap.ident, name=cap.name, desc=cap.description))
+      self.session.add(UserPermission(user_id=uid, perm_id=cap.ident)) 
     self.session.commit()
     
 
@@ -115,6 +118,7 @@ class Fruitpile(object):
         os.remove(self.lockpath)
 
   def add_new_fileset(self, **kwargs):
+    self.perm_manager.check_permission(kwargs.get("uid"), Capability.ADD_FILESET)
     fs = FileSet(name=kwargs.get("name"), repo=self.repo_data)
     self.session.add(fs)
     try:
@@ -125,10 +129,12 @@ class Fruitpile(object):
     return fs
 
   def list_filesets(self, **kwargs):
+    self.perm_manager.check_permission(kwargs.get("uid"), Capability.LIST_FILESETS)
     fss = self.session.query(FileSet).all()
     return fss
 
   def add_file(self, **kwargs):
+    self.perm_manager.check_permission(kwargs.get("uid"), Capability.ADD_FILE)
     source_file = kwargs.get("source_file")
     if not os.path.exists(source_file):
       raise FPLSourceFileNotFound("%s cannot be found" % (source_file))
@@ -165,7 +171,8 @@ class Fruitpile(object):
       raise FPLBinFileExists("binfile %s/%s in fileset (id=%d) already exists in store" % (name, path, kwargs.get("fileset_id")))
     return bf
 
-  def list_files(self):
+  def list_files(self, **kwargs):
+    self.perm_manager.check_permission(kwargs.get("uid"), Capability.LIST_FILES)
     bfs = self.session.query(BinFile).all()
     return bfs
 

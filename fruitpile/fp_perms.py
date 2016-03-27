@@ -22,9 +22,11 @@ from .fp_constants import Capability
 class PermissionManager(object):
 
   def __init__(self, session):
-    pass
+    self.session = session
 
-  def check_permission(self, permission, user_perms):
+  def check_permission(self, uid, permission):
+    perms = self.session.query(UserPermission).filter(UserPermission.user_id == uid).all()
+    user_perms = set([perm.perm_id for perm in perms])
     # Sanity check that we got a set of user permissions through
     assert type(user_perms) == type(set())
     if permission not in user_perms:
