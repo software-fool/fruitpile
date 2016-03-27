@@ -66,6 +66,14 @@ class TestSchemaState(unittest.TestCase):
     for i in range(len(ss)):
         self.assertEquals(ss[i], s1s[i])
 
+  def test_create_duplicate_state_should_fail(self):
+    st1 = State(name="test_state")
+    st2 = State(name="test_state")
+    self.session.add_all([st1,st2])
+    with self.assertRaises(IntegrityError):
+      self.session.commit()
+    self.session.rollback()
+
 class TestSchemaRepo(unittest.TestCase):
 
   def setUp(self):

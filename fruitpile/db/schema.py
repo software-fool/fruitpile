@@ -29,7 +29,7 @@ class State(Base):
   # The state id
   id = Column(Integer, primary_key=True)
   # The state name
-  name = Column(String(20), nullable=False)
+  name = Column(String(20), unique=True, nullable=False)
   
   def __repr__(self):
     return "<State(%s)>" % (self.name)

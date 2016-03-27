@@ -43,6 +43,7 @@ class Fruitpile(object):
     self.path=path
     self.dbpath = os.path.join(path,"fpl.db")
     self.lockpath = None
+    self.state_map = {}
 
   def open(self):
     if not os.path.exists(self.dbpath):
@@ -66,6 +67,9 @@ class Fruitpile(object):
     assert repo.repo_type == "FileManager"
     self.repo_data = repo
     self.repo = FileManager(self.repo_data.path)
+    states = self.session.query(State).all()
+    for state in states:
+      self.state_map[state.name] = state.id
 
   def init(self, **kwargs):
     if os.path.exists(self.path):
@@ -133,7 +137,7 @@ class Fruitpile(object):
                  version=kwargs.get("version"),
                  revision=kwargs.get("revision"),
                  primary=kwargs.get("primary"),
-                 state=State(name="untested"),
+                 state_id=self.state_map["untested"],
                  create_date=datetime.now(),
                  update_date=datetime.now(),
                  source=kwargs.get("source"),
