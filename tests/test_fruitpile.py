@@ -25,6 +25,7 @@ sys.path.append(os.path.dirname(mydir))
 
 from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists, FPLBinFileExists, FPLSourceFileNotFound, FPLSourceFilePermissionDenied
 from fruitpile.db.schema import *
+from fruitpile.fp_constants import Capability
 
 # Destroys the entire tree of data (python equivalent of rm -rf)
 def clear_tree(path):
@@ -103,6 +104,10 @@ class TestFruitpileOpenOperations(unittest.TestCase):
     fp.open()
     self.assertNotEquals(fp.session, None)
     self.assertEquals(fp.repo.__class__.__name__, "FileManager")
+    self.assertEquals(Capability.ADD_FILESET, 1)
+    self.assertEquals(Capability.ADD_FILE, 2)
+    self.assertEquals(Capability.LIST_FILESETS, 3)
+    self.assertEquals(Capability.LIST_FILES, 4)
 
   def test_reopen_existing_repo(self):
     fp1 = Fruitpile(self.store_path)

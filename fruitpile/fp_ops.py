@@ -19,6 +19,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 from importlib import import_module
 from .fp_exc import *
+from .fp_perms import PermissionManager
+from .fp_constants import *
 import os
 from datetime import datetime
 from hashlib import sha1, sha256, sha512
@@ -70,6 +72,7 @@ class Fruitpile(object):
     states = self.session.query(State).all()
     for state in states:
       self.state_map[state.name] = state.id
+    self.perm_manager = PermissionManager(self.session)
 
   def init(self, **kwargs):
     if os.path.exists(self.path):
@@ -86,7 +89,11 @@ class Fruitpile(object):
     ss = []
     for sname in ["untested","testing","tested","approved","released","withdrawn"]:
       self.session.add(State(name=sname))
+    for name in Capability.keys():
+      cap = Capability.get(name)
+      self.session.add(Permission(id=cap.ident, name=cap.name, desc=cap.description))
     self.session.commit()
+    
 
   def close(self):
     self.repo.close()

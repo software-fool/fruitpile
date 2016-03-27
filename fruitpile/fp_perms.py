@@ -16,33 +16,13 @@
 
 from .db.schema import *
 from .fp_exc import FPLPermissionDenied
+from .fp_constants import Capability
 
-class AllPermissions(object):
-  d = {}
-
-  @staticmethod
-  def create(session):
-    perms = session.query(Permission).all()
-    for perm in perms:
-      AllPermissions.add_item(perm.name, perm.id)
-
-  @classmethod
-  def add_item(cls, name, value):
-    if not AllPermissions.d.has_key(name):
-      AllPermissions.d[name] = value
-      setattr(cls, name, value)
-
-  @staticmethod
-  def keys():
-    return AllPermissions.d.keys()
 
 class PermissionManager(object):
 
   def __init__(self, session):
-    AllPermissions.create(session)
-
-  def get_all_permissions(self):
-    return self.perms.keys()
+    pass
 
   def check_permission(self, permission, user_perms):
     # Sanity check that we got a set of user permissions through

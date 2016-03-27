@@ -26,6 +26,7 @@ sys.path.append(os.path.dirname(mydir))
 from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists, FPLBinFileExists, FPLSourceFileNotFound, FPLSourceFilePermissionDenied
 from fruitpile.fp_perms import *
 from fruitpile.db.schema import *
+from fruitpile.fp_constants import Capability
 
 def setUpDatabase():
   engine = create_engine('sqlite:///:memory:')
@@ -42,14 +43,13 @@ def build_permissions_table(obj):
     perm = Permission(name=name, desc=desc)
     obj.session.add(perm)
   obj.session.commit()
-  AllPermissions.create(obj.session)
-  obj.assertEquals(AllPermissions.ADD_FILESET, 1)
-  obj.assertEquals(AllPermissions.ADD_FILES, 2)
-  obj.assertEquals(AllPermissions.LIST_FILESETS, 3)
-  obj.assertEquals(AllPermissions.LIST_FILES, 4)
+  obj.assertEquals(Capability.ADD_FILESET, 1)
+  obj.assertEquals(Capability.ADD_FILE, 2)
+  obj.assertEquals(Capability.LIST_FILESETS, 3)
+  obj.assertEquals(Capability.LIST_FILES, 4)
 
 
-class TestAllPermissions(unittest.TestCase):
+class TestCapabilities(unittest.TestCase):
 
   def setUp(self):
     self.engine, self.session = setUpDatabase()
@@ -63,7 +63,7 @@ class TestAllPermissions(unittest.TestCase):
   def test_all_permissions_access_unknown_permission(self):
     build_permissions_table(self)
     with self.assertRaises(AttributeError):
-      _ = AllPermissions.ARCHIVE_FILESET
+      _ = Capability.ARCHIVE_FILESET
 
 
 class TestPermissionManager(unittest.TestCase):
@@ -77,16 +77,16 @@ class TestPermissionManager(unittest.TestCase):
   def test_create_permission_manager(self):
     build_permissions_table(self)
     perm_man = PermissionManager(self.session)
-    self.assertEquals(AllPermissions.ADD_FILESET, 1)
-    self.assertEquals(AllPermissions.ADD_FILES, 2)
-    self.assertEquals(AllPermissions.LIST_FILESETS, 3)
-    self.assertEquals(AllPermissions.LIST_FILES, 4)
+    self.assertEquals(Capability.ADD_FILESET, 1)
+    self.assertEquals(Capability.ADD_FILE, 2)
+    self.assertEquals(Capability.LIST_FILESETS, 3)
+    self.assertEquals(Capability.LIST_FILES, 4)
 
   def test_get_all_permissions_from_permission_manager(self):
     build_permissions_table(self)
     perm_man = PermissionManager(self.session)
-    self.assertEquals(set(AllPermissions.keys()),
-                      set(["ADD_FILESET","ADD_FILES",
+    self.assertEquals(set(Capability.keys()),
+                      set(["ADD_FILESET","ADD_FILE",
                            "LIST_FILESETS","LIST_FILES"]))
 
   def test_check_permission_with_uid_no_permissions(self):
@@ -98,7 +98,7 @@ class TestPermissionManager(unittest.TestCase):
     perm_ids = [perm.id for perm in perms]
     self.assertEquals(perm_ids, [])
     with self.assertRaises(FPLPermissionDenied):
-      perm_man.check_permission(AllPermissions.LIST_FILESETS, set(perm_ids))
+      perm_man.check_permission(Capability.LIST_FILESETS, set(perm_ids))
 
   def test_check_permission_with_uid_with_some_permissions(self):
     build_permissions_table(self)
@@ -109,10 +109,10 @@ class TestPermissionManager(unittest.TestCase):
     perm_man = PermissionManager(self.session)
     user_perms = self.session.query(UserPermission).filter(UserPermission.user_id == 1046).all()
     perm_ids = [user_perm.perm_id for user_perm in user_perms]
-    perm_man.check_permission(AllPermissions.LIST_FILESETS, set(perm_ids))
+    perm_man.check_permission(Capability.LIST_FILESETS, set(perm_ids))
     self.assertTrue(True)
     with self.assertRaises(FPLPermissionDenied):
-      perm_man.check_permission(AllPermissions.ADD_FILESET, set(perm_ids))
+      perm_man.check_permission(Capability.ADD_FILESET, set(perm_ids))
 
 
 
