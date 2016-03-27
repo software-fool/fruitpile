@@ -19,6 +19,7 @@ from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
 from sqlalchemy.schema import UniqueConstraint
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine
+from sqlalchemy.exc import IntegrityError
 
 Base = declarative_base()
 
@@ -32,6 +33,16 @@ class State(Base):
   
   def __repr__(self):
     return "<State(%s)>" % (self.name)
+
+class Permission(Base):
+  __tablename__ = 'permissions'
+
+  id = Column(Integer, primary_key=True)
+  name = Column(String(20), unique=True, nullable=False)
+  desc = Column(String, nullable=False)
+
+  def __repr__(self):
+    return "<Permission(%s=%d)>" % (self.name, self.id)
 
 class Repo(Base):
   __tablename__ = 'repos'

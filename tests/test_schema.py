@@ -176,5 +176,53 @@ class TestSchemaBinFile(unittest.TestCase):
     self.assertEquals(len(bfs1), len(targets))
     self.assertEquals(bfs1, bfs)
 
+
+class TestSchemaPermission(unittest.TestCase):
+
+  def setUp(self):
+    self.engine, self.session = setUpDatabase()
+
+  def tearDown(self):
+    self.session.close()
+
+  def test_create_single_permission(self):
+    perm = Permission(name="ADD_FILESET", desc="Grant permission to add a fileset")
+    self.session.add(perm)
+    self.session.commit()
+    self.session.rollback()
+    self.assertEquals(perm.name, "ADD_FILESET")
+    self.assertEquals(perm.id, 1)
+    perms = self.session.query(Permission).all()
+    self.assertEquals(len(perms), 1)
+    self.assertEquals(perms[0], perm)
+    self.assertEquals(perms[0].name, "ADD_FILESET")
+    self.assertEquals(perms[0].desc,"Grant permission to add a fileset")
+
+  def test_create_multiple_permissions(self):
+    perm_names = [("ADD_FILESET","Grant permission to add a fileset"),
+                  ("ADD_FILES","Grant permission to add a file"),
+                  ("LIST_FILESETS","Grant permission to list all filesets"),
+                  ("LIST_FILES","Grant permission to list all files")]
+    ps1 = []
+    for name, desc in perm_names:
+      ps1.append(Permission(name=name, desc=desc))
+    self.session.add_all(ps1)
+    self.session.commit()
+    self.session.rollback()
+    self.assertEquals(len(ps1), len(perm_names))
+    ps2 = self.session.query(Permission).all()
+    self.assertEquals(len(ps2), len(perm_names))
+    self.assertEquals(ps1, ps2)
+
+  def test_fail_to_create_duplicates(self):
+    perm1 = Permission(name="ADD_FILESET", desc="Grant permission to add a fileset")
+    self.session.add(perm1)
+    perm2 = Permission(name="ADD_FILESET", desc="Some other permission with the same name")
+    self.session.add(perm2)
+    with self.assertRaises(IntegrityError):
+      self.session.commit()
+    self.session.rollback()
+
+
 if __name__ == "__main__":
   unittest.main()
