@@ -33,7 +33,7 @@ def setUpDatabase():
   session = Session()
   return engine, session
 
-class TestState(unittest.TestCase):
+class TestSchemaState(unittest.TestCase):
 
   def setUp(self):
     self.engine, self.session = setUpDatabase()
@@ -66,7 +66,7 @@ class TestState(unittest.TestCase):
     for i in range(len(ss)):
         self.assertEquals(ss[i], s1s[i])
 
-class TestRepo(unittest.TestCase):
+class TestSchemaRepo(unittest.TestCase):
 
   def setUp(self):
     self.engine, self.session = setUpDatabase()
@@ -84,7 +84,7 @@ class TestRepo(unittest.TestCase):
     self.assertEquals(len(repos), 1)
     self.assertEquals(repos[0], repo)
 
-class TestFileSet(unittest.TestCase):
+class TestSchemaFileSet(unittest.TestCase):
 
   def setUp(self):
     self.engine, self.session = setUpDatabase()
@@ -118,7 +118,7 @@ class TestFileSet(unittest.TestCase):
     self.assertEquals(fss, fss2)
 
 
-class TestBinFile(unittest.TestCase):
+class TestSchemaBinFile(unittest.TestCase):
 
   def setUp(self):
     self.engine, self.session = setUpDatabase()
