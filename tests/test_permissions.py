@@ -34,6 +34,26 @@ def setUpDatabase():
   session = Session()
   return engine, session
 
+def build_permissions_table(obj):
+  for name,desc in [("ADD_FILESET","Grant permission to add a fileset"),
+                    ("ADD_FILES","Grant permission to add a file"),
+                    ("LIST_FILESETS","Grant permission to list all filesets"),
+                    ("LIST_FILES","Grant permission to list all files")]:
+    perm = Permission(name=name, desc=desc)
+    obj.session.add(perm)
+  obj.session.commit()
+  all_perms = obj.session.query(Permission).all()
+  d = {}
+  for perm in all_perms:
+    d[perm.name] = perm.id
+  perms = AllPermissions(d)
+  obj.assertEquals(perms.ADD_FILESET, 1)
+  obj.assertEquals(perms.ADD_FILES, 2)
+  obj.assertEquals(perms.LIST_FILESETS, 3)
+  obj.assertEquals(perms.LIST_FILES, 4)
+  return perms
+
+
 class TestAllPermissions(unittest.TestCase):
 
   def setUp(self):
@@ -42,30 +62,11 @@ class TestAllPermissions(unittest.TestCase):
   def tearDown(self):
     self.session.close()
 
-  def build_permissions_table(self):
-    for name,desc in [("ADD_FILESET","Grant permission to add a fileset"),
-                      ("ADD_FILES","Grant permission to add a file"),
-                      ("LIST_FILESETS","Grant permission to list all filesets"),
-                      ("LIST_FILES","Grant permission to list all files")]:
-      perm = Permission(name=name, desc=desc)
-      self.session.add(perm)
-    self.session.commit()
-    all_perms = self.session.query(Permission).all()
-    d = {}
-    for perm in all_perms:
-      d[perm.name] = perm.id
-    perms = AllPermissions(d)
-    self.assertEquals(perms.ADD_FILESET, 1)
-    self.assertEquals(perms.ADD_FILES, 2)
-    self.assertEquals(perms.LIST_FILESETS, 3)
-    self.assertEquals(perms.LIST_FILES, 4)
-    return perms
-
   def test_build_all_permissions_object(self):
-    self.build_permissions_table()
+    build_permissions_table(self)
 
   def test_all_permissions_access_unknown_permission(self):
-    perms = self.build_permissions_table()
+    perms = build_permissions_table(self)
     with self.assertRaises(AttributeError):
       _ = perms.ARCHIVE_FILESET
 
