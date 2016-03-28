@@ -24,7 +24,7 @@ import pprint
 mydir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
 sys.path.append(os.path.dirname(mydir))
 
-from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists, FPLBinFileExists, FPLSourceFileNotFound, FPLSourceFilePermissionDenied, FPLPermissionDenied, FPLInvalidStateTransition
+from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists, FPLBinFileExists, FPLSourceFileNotFound, FPLSourceFilePermissionDenied, FPLPermissionDenied, FPLInvalidStateTransition, FPLInvalidState, FPLBinFileNotExists
 from fruitpile.db.schema import *
 from fruitpile.fp_constants import Capability
 from fruitpile.fp_state import StateMachine
@@ -204,7 +204,7 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
   def test_add_a_new_fileset_and_file(self):
     bfs = self.fp.list_files(uid=1046)
     self.assertEquals(bfs, [])
-    fs =self.fp.add_new_fileset(name="test-1", uid=1046)
+    fs = self.fp.add_new_fileset(name="test-1", uid=1046)
     filename = "%s/data/example_file.txt" % (mydir)
     bf = self.fp.add_file(
         uid=1046,
@@ -462,7 +462,69 @@ class TestFruitpileStateMachine(unittest.TestCase):
     with self.assertRaises(FPLInvalidStateTransition):
       new_state = sm.transit(1046, self.fp.perm_manager, "untested", self)
 
+  def test_user_without_permission_to_transition_state(self):
+    sm = StateMachine.create_state_machine(self.fp.session)
+    with self.assertRaises(FPLPermissionDenied):
+      new_state = sm.transit(1047, self.fp.perm_manager, "testing", self)
 
+
+class TestFruitpileStateTransitOperations(unittest.TestCase):
+
+  def setUp(self):
+    self.store_path = "/tmp/store%d" % (os.getpid())
+    clear_tree(self.store_path)
+    fp = Fruitpile(self.store_path)
+    fp.init(uid=1046, username="db")
+    fp.open()
+    self.fp = fp
+    fs = self.fp.add_new_fileset(name="test-1", uid=1046)
+    filename = "%s/data/example_file.txt" % (mydir)
+    bf = self.fp.add_file(
+        uid=1046,
+        source_file=filename,
+        fileset_id=fs.id,
+        name="requirements.txt",
+        path="deploy",
+        version="1",
+        revision="123",
+        primary=True,
+        source="buildbot")
+    self.bf = bf
+    self.assertEquals(self.bf.state.name, "untested")
+
+  def tearDown(self):
+    self.bf = None
+    self.fp.close()
+    self.fp = None
+    clear_tree(self.store_path)
+
+  def test_create_file_and_transit_through_api(self):
+    bf = self.fp.transit_file(uid=1046, file_id=self.bf.id, req_state="testing")
+    self.assertEquals(bf.state.name, "testing")
+    self.fp.session.rollback()
+    bfs = self.fp.session.query(BinFile).all()
+    self.assertEquals(len(bfs), 1)
+    bf0 = bfs[0]
+    self.assertEquals(bf0.state.name, "testing")
+
+  def test_create_file_and_transit_through_api_invalid_state(self):
+    with self.assertRaises(FPLInvalidStateTransition):
+      bf = self.fp.transit_file(uid=1046, file_id=self.bf.id, req_state="approved")
+    self.assertEquals(self.bf.state_id, 1)
+
+  def test_create_file_and_transit_to_unknown_state(self):
+    with self.assertRaises(FPLInvalidState):
+      bf = self.fp.transit_file(uid=1046, file_id=self.bf.id, req_state="happy-birthday")
+    self.assertEquals(self.bf.state_id, 1)
+
+  def test_create_file_and_try_transit_without_permission(self):
+    with self.assertRaises(FPLPermissionDenied):
+      bf = self.fp.transit_file(uid=1047, file_id=self.bf.id, req_state="testing")
+    self.assertEquals(self.bf.state_id, 1)
+
+  def test_create_file_and_try_to_transit_unknown_file(self):
+    with self.assertRaises(FPLBinFileNotExists):
+      bf = self.fp.transit_file(uid=1046, file_id=self.bf.id+1, req_state="testing")
 
 if __name__ == "__main__":
   unittest.main()

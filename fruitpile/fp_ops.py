@@ -22,6 +22,7 @@ from .fp_exc import *
 from .fp_perms import PermissionManager
 from .fp_constants import *
 from .fp_init import init_data
+from .fp_state import StateMachine
 import os
 from datetime import datetime
 from hashlib import sha1, sha256, sha512
@@ -87,7 +88,7 @@ class Fruitpile(object):
     self.session = Session()
     # Initialise the static data in the database
     init_data(self.session, kwargs.get("uid"), kwargs.get("username"), self.path)
-    
+    self.sm = StateMachine.create_state_machine(self.session)
 
   def close(self):
     self.repo.close()
@@ -160,6 +161,21 @@ class Fruitpile(object):
     except IntegrityError:
       self.session.rollback()
       raise FPLBinFileExists("binfile %s/%s in fileset (id=%d) already exists in store" % (name, path, kwargs.get("fileset_id")))
+    return bf
+
+  def transit_file(self, **kwargs):
+    uid = kwargs.get("uid")
+    file_id = kwargs.get("file_id")
+    req_state = kwargs.get("req_state")
+    if not self.sm.is_valid_state(req_state):
+      raise FPLInvalidState("state %s is not a valid state" % (req_state))
+    bf = self.session.query(BinFile).filter(BinFile.id == file_id).all()
+    if len(bf) == 0:
+      raise FPLBinFileNotExists("binfile with id=%d cannot be found" % (file_id))
+    bf = bf[0]
+    new_state = self.sm.transit(uid, self.perm_manager, req_state, self)
+    bf.state_id = self.sm.state_id
+    self.session.commit()
     return bf
 
   def list_files(self, **kwargs):

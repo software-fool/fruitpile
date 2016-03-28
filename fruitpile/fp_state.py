@@ -35,6 +35,9 @@ class StateMachine(object):
   def state_id(self):
     return self._state_dict[self._state].id
 
+  def is_valid_state(self, state):
+    return state in self._state_dict
+
   def transit(self, uid, perm_man, new_state, obj):
     try:
       valid_trans = self._transitions[self._state]

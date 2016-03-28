@@ -52,4 +52,10 @@ class FPLCannotTransitionState(FruitpileError):
     self.msg = msg
     self.exc = exc
 
+class FPLInvalidState(FruitpileError):
+  pass
+
+class FPLBinFileNotExists(FruitpileError):
+  pass
+
 
