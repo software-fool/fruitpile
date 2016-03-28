@@ -24,7 +24,7 @@ import pprint
 mydir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
 sys.path.append(os.path.dirname(mydir))
 
-from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists, FPLBinFileExists, FPLSourceFileNotFound, FPLSourceFilePermissionDenied, FPLPermissionDenied
+from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists, FPLBinFileExists, FPLSourceFileNotFound, FPLSourceFilePermissionDenied, FPLPermissionDenied, FPLInvalidStateTransition
 from fruitpile.db.schema import *
 from fruitpile.fp_constants import Capability
 from fruitpile.fp_state import StateMachine
@@ -444,6 +444,23 @@ class TestFruitpileStateMachine(unittest.TestCase):
     self.assertEquals(self.called_back_perm_man, None)
     self.assertEquals(self.called_back_old_state, None)
     self.assertEquals(self.called_back_new_state, None)
+
+  def test_illegal_transition_1(self):
+    sm = StateMachine.create_state_machine(self.fp.session)
+    with self.assertRaises(FPLInvalidStateTransition):
+      new_state = sm.transit(1046, self.fp.perm_manager, "approved", self)
+
+  def test_illegal_transition_2(self):
+    sm = StateMachine.create_state_machine(self.fp.session)
+    new_state = sm.transit(1046, self.fp.perm_manager, "testing", self)
+    with self.assertRaises(FPLInvalidStateTransition):
+      new_state = sm.transit(1046, self.fp.perm_manager, "approved", self)
+
+  def test_illegal_transition_3(self):
+    sm = StateMachine.create_state_machine(self.fp.session)
+    new_state = sm.transit(1046, self.fp.perm_manager, "testing", self)
+    with self.assertRaises(FPLInvalidStateTransition):
+      new_state = sm.transit(1046, self.fp.perm_manager, "untested", self)
 
 
 
