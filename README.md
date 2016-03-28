@@ -202,9 +202,9 @@ doesn't merge easily so managing configuration is harder.
 
 ## States
 
-* implement state model
-* add required data to states
 * add comments to state transition
+* add functions to allow extra conditions to be checked when
+  transitioning stats
 
 ## Operations
 
@@ -216,6 +216,12 @@ doesn't merge easily so managing configuration is harder.
 ## Tags and Properties
 
 * all of it
+
+## command line tool
+
+* provide a simple daemon backend to start fruitpile and then a
+  fruitend tool to modify it (might as well use the RESTful API
+  though)
 
 ## REST API
 
