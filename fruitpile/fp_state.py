@@ -71,7 +71,7 @@ class StateMachine(object):
     for t in transitions:
       # For each transition add the state transition to the
       # transition map for this start state
-      trnsfn = lambda a,b,c,d,e: None if not t.transfn else t.transfn.transfn
+      trnsfn = lambda a,b,c,d,e: None if not t.transfn_id else t.transfn.transfn
 
       sm._transitions[t.start.name][t.end.name] = \
                 StateTransition(new_state=t.end.name,
