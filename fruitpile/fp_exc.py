@@ -40,3 +40,16 @@ class FPLSourceFilePermissionDenied(FruitpileError):
 
 class FPLPermissionDenied(FruitpileError):
   pass
+
+class FPLInvalidStateTransition(FruitpileError):
+  pass
+
+class FPLUnknownState(FruitpileError):
+  pass
+
+class FPLCannotTransitionState(FruitpileError):
+  def __init__(self, msg, exc):
+    self.msg = msg
+    self.exc = exc
+
+
