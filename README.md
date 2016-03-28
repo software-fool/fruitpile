@@ -209,9 +209,9 @@ doesn't merge easily so managing configuration is harder.
 ## Operations
 
 * get file
-* confirm auxilliary files can be uploaded and managed
 * move file (locations)
 * archive files
+* change file type (auxilliary->primary/primary->auxilliary)
 
 ## Tags and Properties
 
