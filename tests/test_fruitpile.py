@@ -389,6 +389,12 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
         primary=True,
         source="buildbot")
 
+def state_machine_callback_helper(uid, perm_man, old_state, new_state, obj):
+  obj.called_back_uid = uid
+  obj.called_back_perm_man = perm_man
+  obj.called_back_old_state = old_state
+  obj.called_back_new_state = new_state
+
 class TestFruitpileStateMachine(unittest.TestCase):
 
   def setUp(self):
@@ -398,6 +404,10 @@ class TestFruitpileStateMachine(unittest.TestCase):
     fp.init(uid=1046, username="db")
     fp.open()
     self.fp = fp
+    self.called_back_uid = None
+    self.called_back_perm_man = None
+    self.called_back_old_state = None
+    self.called_back_new_state = None
 
   def tearDown(self):
     self.fp.close()
@@ -405,12 +415,37 @@ class TestFruitpileStateMachine(unittest.TestCase):
 
   def test_create_state_machine(self):
     sm = StateMachine.create_state_machine(self.fp.session)
-    self.assertEquals(sm.state, "untested")
+    untested_state = self.fp.session.query(State).filter(State.name == "untested").first()
+    self.assertEquals(sm.state, untested_state.name)
     self.assertEquals(len(sm._transitions), 6)
     untested_trans = sm._transitions[sm.state]
     self.assertEquals(len(untested_trans), 2)
     self.assertTrue("testing" in untested_trans)
     self.assertTrue("withdrawn" in untested_trans)
+    self.assertTrue(untested_trans["testing"].capability, Capability.BEGIN_TESTING)
+    self.assertEquals(sm.state_id, untested_state.id)
+
+  def test_transition_from_one_state_to_another(self):
+    sm = StateMachine.create_state_machine(self.fp.session)
+    sm.transit(1046, self.fp.perm_manager, "testing", self)
+    self.assertEquals(sm.state, "testing")
+    self.assertEquals(self.called_back_uid, None)
+    self.assertEquals(self.called_back_perm_man, None)
+    self.assertEquals(self.called_back_old_state, None)
+    self.assertEquals(self.called_back_new_state, None)
+
+  def test_transitions_through_all_states(self):
+    sm = StateMachine.create_state_machine(self.fp.session)
+    init_state = "untested"
+    for s in ["testing","tested","approved","released"]:
+      new_state = sm.transit(1046, self.fp.perm_manager, s, self)
+      self.assertEquals(sm.state, new_state)
+    self.assertEquals(self.called_back_uid, None)
+    self.assertEquals(self.called_back_perm_man, None)
+    self.assertEquals(self.called_back_old_state, None)
+    self.assertEquals(self.called_back_new_state, None)
+
+
 
 if __name__ == "__main__":
   unittest.main()

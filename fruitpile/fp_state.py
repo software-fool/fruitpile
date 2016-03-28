@@ -24,11 +24,16 @@ StateTransition = namedtuple("StateTransition", ["new_state","capability","trans
 class StateMachine(object):
   def __init__(self):
     self._state = None
+    self._state_dict = {}
     self._transitions = {}
 
   @property
   def state(self):
     return self._state
+
+  @property
+  def state_id(self):
+    return self._state_dict[self._state].id
 
   def transit(self, uid, perm_man, new_state, obj):
     try:
@@ -39,13 +44,14 @@ class StateMachine(object):
       trans_control = valid_trans[new_state]
     except KeyError:
       raise FPLInvalidStateTransition("Invalid state transition from %s to %s" % (self._state, new_state))
-    perm_man.check_permissions(uid, trans_control.capability)
+    perm_man.check_permission(uid, trans_control.capability)
     try:
       trans_control.transfn(uid, perm_man, self._state, new_state, obj)
     except Exception as exc:
       if isinstance(exc, FPLPermissionDenied):
         raise exc
       raise FPLCannotTransitionState("Transit state function for %s->%s rejected state transition" % (self._state, new_state), exc)
+    self._state = new_state
     return new_state
 
   @staticmethod
@@ -55,6 +61,8 @@ class StateMachine(object):
     sm = StateMachine()
     for nm in state_names:
       sm._transitions[nm] = {}
+    for s in states:
+      sm._state_dict[s.name] = s
     start_states = state_names[:]
     transitions = session.query(Transition).all()
     for t in transitions:
@@ -82,7 +90,7 @@ class StateMachine(object):
     # circumstances there must be at least one starting state.
     # While multiple start states do make sense in some scenarios
     # this system doesn't appear to need such functionality.
-    sm._state = start_states[0]
+    sm._state = session.query(State).filter(State.name == start_states[0]).first().name
     return sm
 
   

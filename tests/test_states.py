@@ -31,7 +31,7 @@ class DummyPermManager(object):
   def __init__(self, allow):
     self.allow = allow
 
-  def check_permissions(self, uid, capability):
+  def check_permission(self, uid, capability):
     if not self.allow:
       raise FPLPermissionDenied
 
