@@ -24,7 +24,7 @@ import pprint
 mydir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
 sys.path.append(os.path.dirname(mydir))
 
-from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists, FPLBinFileExists, FPLSourceFileNotFound, FPLSourceFilePermissionDenied, FPLPermissionDenied, FPLInvalidStateTransition, FPLInvalidState, FPLBinFileNotExists
+from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists, FPLBinFileExists, FPLSourceFileNotFound, FPLSourceFilePermissionDenied, FPLPermissionDenied, FPLInvalidStateTransition, FPLInvalidState, FPLBinFileNotExists, FPLInvalidTargetForStateChange
 from fruitpile.db.schema import *
 from fruitpile.fp_constants import Capability
 from fruitpile.fp_state import StateMachine
@@ -242,6 +242,36 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
     self.assertEquals(len(bfs1), 10)
     bfs2 = self.fp.list_files(uid=1046)
     self.assertEquals(bfs1, bfs2)
+
+  def test_add_multiple_files_to_fileset_with_auxilliaries(self):
+    bfs0 = self.fp.list_files(uid=1046)
+    self.assertEquals(bfs0, [])
+    fs = self.fp.add_new_fileset(name="test-1", uid=1046)
+    filename = "%s/data/example_file.txt" % (mydir)
+    bfs1 = []
+    for i in range(10):
+      bfs1.append(
+          self.fp.add_file(
+              uid=1046,
+              source_file=filename,
+              fileset_id=fs.id,
+              name="requirements-%d.txt" % (i),
+              path="deploy",
+              version="1",
+              revision="123",
+              primary=True if i == 0 else False,
+              source="buildbot")
+      )
+    self.assertEquals(len(bfs1), 10)
+    bfs2 = self.fp.list_files(uid=1046)
+    self.assertEquals(bfs1, bfs2)
+    primaries = [x for x in filter(lambda x: x.primary, bfs2)]
+    auxilliaries = [x for x in filter(lambda x: not x.primary, bfs2)]
+    self.assertEquals(len(primaries), 1)
+    self.assertEquals(len(auxilliaries), 9)
+    self.assertEquals(primaries[0].id, 1)
+    auxilliary_ids = sorted([auxilliary.id for auxilliary in auxilliaries])
+    self.assertEquals(auxilliary_ids, [2,3,4,5,6,7,8,9,10])
 
   def test_add_multiple_files_to_multiple_filesets(self):
     bfs0 = self.fp.list_files(uid=1046)
@@ -490,6 +520,8 @@ class TestFruitpileStateTransitOperations(unittest.TestCase):
         primary=True,
         source="buildbot")
     self.bf = bf
+    self.fs = fs
+    self.filename = filename
     self.assertEquals(self.bf.state.name, "untested")
 
   def tearDown(self):
@@ -525,6 +557,21 @@ class TestFruitpileStateTransitOperations(unittest.TestCase):
   def test_create_file_and_try_to_transit_unknown_file(self):
     with self.assertRaises(FPLBinFileNotExists):
       bf = self.fp.transit_file(uid=1046, file_id=self.bf.id+1, req_state="testing")
+
+  def test_attempt_to_transit_an_auxilliary_file(self):
+    bf = self.fp.add_file(
+        uid=1046,
+        source_file=self.filename,
+        fileset_id=self.fs.id,
+        name="coverage-report.txt",
+        path="deploy",
+        version="1",
+        revision="123",
+        primary=False,
+        source="buildbot")
+    with self.assertRaises(FPLInvalidTargetForStateChange):
+      bf = self.fp.transit_file(uid=1046, file_id=bf.id, req_state="testing")
+
 
 if __name__ == "__main__":
   unittest.main()
