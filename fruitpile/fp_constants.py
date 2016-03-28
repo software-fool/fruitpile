@@ -54,7 +54,12 @@ _CAPABILITIES = [
     (1, "ADD_FILESET", "Permission to create a new fileset"),
     (2, "ADD_FILE", "Permission to upload a new file to a fileset"),
     (3, "LIST_FILESETS", "Permission to list all the filesets"),
-    (4, "LIST_FILES", "Permission to list all the files across all filesets")]
+    (4, "LIST_FILES", "Permission to list all the files across all filesets"),
+    (5, "BEGIN_TESTING", "Permission to transit an item to the testing state"),
+    (6, "WITHDRAW_ARTIFACT", "Permission to withdraw and artifact"),
+    (7, "ARTIFACT_TESTED", "Permission to mark testing as completed"),
+    (8, "APPROVE_ARTIFACT", "Permission to mark artifact as approved"),
+    (9, "RELEASE_ARTIFACT", "Permission to release artifact")]
 
 for perm_id, perm_name, perm_desc in _CAPABILITIES:
   Capability(perm_id, perm_name, perm_desc)

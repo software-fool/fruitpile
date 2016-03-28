@@ -19,6 +19,7 @@ import io
 import os
 import sys
 import sqlite3
+import pprint
 
 mydir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
 sys.path.append(os.path.dirname(mydir))
@@ -26,6 +27,7 @@ sys.path.append(os.path.dirname(mydir))
 from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists, FPLBinFileExists, FPLSourceFileNotFound, FPLSourceFilePermissionDenied, FPLPermissionDenied
 from fruitpile.db.schema import *
 from fruitpile.fp_constants import Capability
+from fruitpile.fp_state import StateMachine
 
 # Destroys the entire tree of data (python equivalent of rm -rf)
 def clear_tree(path):
@@ -116,9 +118,14 @@ class TestFruitpileOpenOperations(unittest.TestCase):
     self.assertEquals(Capability.ADD_FILE, 2)
     self.assertEquals(Capability.LIST_FILESETS, 3)
     self.assertEquals(Capability.LIST_FILES, 4)
+    self.assertEquals(Capability.BEGIN_TESTING, 5)
+    self.assertEquals(Capability.WITHDRAW_ARTIFACT, 6)
+    self.assertEquals(Capability.ARTIFACT_TESTED, 7)
+    self.assertEquals(Capability.APPROVE_ARTIFACT, 8)
+    self.assertEquals(Capability.RELEASE_ARTIFACT, 9)
     session = fp.session
     perms = session.query(UserPermission).filter(UserPermission.user_id==1046).all()
-    self.assertEquals(len(perms), 4)
+    self.assertEquals(len(perms), 9)
 
   def test_reopen_existing_repo(self):
     fp1 = Fruitpile(self.store_path)
@@ -382,6 +389,28 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
         primary=True,
         source="buildbot")
 
+class TestFruitpileStateMachine(unittest.TestCase):
+
+  def setUp(self):
+    self.store_path = "/tmp/store%d" % (os.getpid())
+    clear_tree(self.store_path)
+    fp = Fruitpile(self.store_path)
+    fp.init(uid=1046, username="db")
+    fp.open()
+    self.fp = fp
+
+  def tearDown(self):
+    self.fp.close()
+    clear_tree(self.store_path)
+
+  def test_create_state_machine(self):
+    sm = StateMachine.create_state_machine(self.fp.session)
+    self.assertEquals(sm.state, "untested")
+    self.assertEquals(len(sm._transitions), 6)
+    untested_trans = sm._transitions[sm.state]
+    self.assertEquals(len(untested_trans), 2)
+    self.assertTrue("testing" in untested_trans)
+    self.assertTrue("withdrawn" in untested_trans)
 
 if __name__ == "__main__":
   unittest.main()

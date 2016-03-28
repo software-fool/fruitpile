@@ -87,7 +87,10 @@ class TestPermissionManager(unittest.TestCase):
     perm_man = PermissionManager(self.session)
     self.assertEquals(set(Capability.keys()),
                       set(["ADD_FILESET","ADD_FILE",
-                           "LIST_FILESETS","LIST_FILES"]))
+                           "LIST_FILESETS","LIST_FILES",
+                           "APPROVE_ARTIFACT","ARTIFACT_TESTED",
+                           "WITHDRAW_ARTIFACT","BEGIN_TESTING",
+                           "RELEASE_ARTIFACT"]))
 
   def test_check_permission_with_uid_no_permissions(self):
     build_permissions_table(self)

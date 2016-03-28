@@ -51,5 +51,38 @@ class StateMachine(object):
   @staticmethod
   def create_state_machine(session):
     states = session.query(State).all()
-    
+    state_names = [state.name for state in states]
+    sm = StateMachine()
+    for nm in state_names:
+      sm._transitions[nm] = {}
+    start_states = state_names[:]
+    transitions = session.query(Transition).all()
+    for t in transitions:
+      # For each transition add the state transition to the
+      # transition map for this start state
+      trnsfn = lambda a,b,c,d,e: None if not t.transfn else t.transfn.transfn
+
+      sm._transitions[t.start.name][t.end.name] = \
+                StateTransition(new_state=t.end.name,
+                                capability=t.perm_id,
+                                transfn=trnsfn)
+      try:
+        del start_states[start_states.index(t.end.name)]
+      except ValueError:
+        # state was already removed from the list
+        pass
+    assert len(start_states) == 1
+    # We currently only support the notion of a single start state
+    # which is identified by a state which you cannot arrive at.
+    # This will break if you have a state such as "open" which can
+    # be returned to (hence the assert above).  In this case the
+    # simple solution is to create a "new" state which transitions
+    # to "open" and have "open" being the state you can return to,
+    # until the system is configured to handle this case.  In all
+    # circumstances there must be at least one starting state.
+    # While multiple start states do make sense in some scenarios
+    # this system doesn't appear to need such functionality.
+    sm._state = start_states[0]
+    return sm
+
   

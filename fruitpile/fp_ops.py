@@ -21,6 +21,7 @@ from importlib import import_module
 from .fp_exc import *
 from .fp_perms import PermissionManager
 from .fp_constants import *
+from .fp_init import init_data
 import os
 from datetime import datetime
 from hashlib import sha1, sha256, sha512
@@ -84,18 +85,8 @@ class Fruitpile(object):
     Base.metadata.create_all(bind=self.engine)
     Session = sessionmaker(bind=self.engine)
     self.session = Session()
-    rp = Repo(name="default", path=self.path, repo_type="FileManager")
-    self.session.add(rp)
-    ss = []
-    for sname in ["untested","testing","tested","approved","released","withdrawn"]:
-      self.session.add(State(name=sname))
-    uid = kwargs.get("uid")
-    self.session.add(User(uid=uid, name=kwargs.get("username")))
-    for name in Capability.keys():
-      cap = Capability.get(name)
-      self.session.add(Permission(id=cap.ident, name=cap.name, desc=cap.description))
-      self.session.add(UserPermission(user_id=uid, perm_id=cap.ident)) 
-    self.session.commit()
+    # Initialise the static data in the database
+    init_data(self.session, kwargs.get("uid"), kwargs.get("username"), self.path)
     
 
   def close(self):
