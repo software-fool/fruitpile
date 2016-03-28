@@ -61,3 +61,5 @@ class FPLBinFileNotExists(FruitpileError):
 class FPLInvalidTargetForStateChange(FruitpileError):
   pass
 
+class FPLFileExists(FruitpileError):
+  pass

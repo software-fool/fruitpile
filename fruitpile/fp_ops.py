@@ -185,3 +185,22 @@ class Fruitpile(object):
     bfs = self.session.query(BinFile).all()
     return bfs
 
+  def get_file(self, **kwargs):
+    uid = kwargs.get("uid")
+    file_id = kwargs.get("file_id")
+    to_file = kwargs.get("to_file")
+    self.perm_manager.check_permission(uid, Capability.GET_FILES)
+    bfs = self.session.query(BinFile).filter(BinFile.id == file_id).all()
+    if bfs == []:
+      raise FPLBinFileNotExists("binfile with id=%d cannot be found" % (file_id))
+    bf = bfs[0]
+    if os.path.exists(to_file):
+      raise FPLFileExists("Destination for get file exists, dest=%s" % (to_file))
+    if not os.access(os.path.dirname(to_file), os.W_OK):
+      raise FPLCannotWriteFile("Destination file directory not writeable %s" % (to_file))
+    srcfob = self.repo.open(os.path.join(bf.path,bf.name),"r")
+    snkfob = io.open(to_file, "wb")
+    copyfileobj(srcfob, snkfob)
+    srcfob.close()
+    snkfob.close()
+    return True

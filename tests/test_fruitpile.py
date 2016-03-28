@@ -24,7 +24,7 @@ import pprint
 mydir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
 sys.path.append(os.path.dirname(mydir))
 
-from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists, FPLBinFileExists, FPLSourceFileNotFound, FPLSourceFilePermissionDenied, FPLPermissionDenied, FPLInvalidStateTransition, FPLInvalidState, FPLBinFileNotExists, FPLInvalidTargetForStateChange
+from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists, FPLBinFileExists, FPLSourceFileNotFound, FPLSourceFilePermissionDenied, FPLPermissionDenied, FPLInvalidStateTransition, FPLInvalidState, FPLBinFileNotExists, FPLInvalidTargetForStateChange, FPLFileExists
 from fruitpile.db.schema import *
 from fruitpile.fp_constants import Capability
 from fruitpile.fp_state import StateMachine
@@ -125,7 +125,7 @@ class TestFruitpileOpenOperations(unittest.TestCase):
     self.assertEquals(Capability.RELEASE_ARTIFACT, 9)
     session = fp.session
     perms = session.query(UserPermission).filter(UserPermission.user_id==1046).all()
-    self.assertEquals(len(perms), 9)
+    self.assertEquals(len(perms), 10)
 
   def test_reopen_existing_repo(self):
     fp1 = Fruitpile(self.store_path)
@@ -572,6 +572,70 @@ class TestFruitpileStateTransitOperations(unittest.TestCase):
     with self.assertRaises(FPLInvalidTargetForStateChange):
       bf = self.fp.transit_file(uid=1046, file_id=bf.id, req_state="testing")
 
+class TestFruitpileGetFileFromRepo(unittest.TestCase):
+
+  def setUp(self):
+    self.store_path = "/tmp/store%d" % (os.getpid())
+    clear_tree(self.store_path)
+    fp = Fruitpile(self.store_path)
+    fp.init(uid=1046, username="db")
+    fp.open()
+    self.fp = fp
+    fs = self.fp.add_new_fileset(name="test-1", uid=1046)
+    filename = "%s/data/example_file.txt" % (mydir)
+    self.bf = self.fp.add_file(
+        uid=1046,
+        source_file=filename,
+        fileset_id=fs.id,
+        name="requirements.txt",
+        path="deploy",
+        version="1",
+        revision="123",
+        primary=True,
+        source="buildbot")
+    self.aux = self.fp.add_file(
+        uid=1046,
+        source_file=filename,
+        fileset_id=fs.id,
+        name="coverage-report.txt",
+        path="deploy",
+        version="1",
+        revision="123",
+        primary=False,
+        source="buildbot")
+    self.filename = filename
+
+  def tearDown(self):
+    self.fp.close()
+    self.fp = None
+    clear_tree(self.store_path)
+
+  def test_get_file_from_file_store(self):
+    to_file = "/tmp/got_file.%d" % (os.getpid())
+    self.fp.get_file(uid=1046, file_id=self.bf.id, to_file=to_file)
+    orig_contents = io.open(self.filename, "rb").read()
+    copy_contents = io.open(to_file, "rb").read()
+    self.assertEquals(orig_contents, copy_contents)
+    os.remove(to_file)
+
+  def test_get_file_from_file_store_unknown_id(self):
+    to_file = "/tmp/got_file.%d" % (os.getpid())
+    with self.assertRaises(FPLBinFileNotExists):
+      self.fp.get_file(uid=1046, file_id=self.aux.id+1, to_file=to_file)
+
+  def test_get_aux_file_from_store(self):
+    to_file = "/tmp/got_file.%d" % (os.getpid())
+    self.fp.get_file(uid=1046, file_id=self.aux.id, to_file=to_file)
+    orig_contents = io.open(self.filename, "rb").read()
+    copy_contents = io.open(to_file, "rb").read()
+    self.assertEquals(orig_contents, copy_contents)
+    os.remove(to_file)
+
+  def test_try_get_file_over_existing_file(self):
+    to_file = "/tmp/got_file.%d" % (os.getpid())
+    self.fp.get_file(uid=1046, file_id=self.bf.id, to_file=to_file)
+    with self.assertRaises(FPLFileExists):
+      self.fp.get_file(uid=1046, file_id=self.aux.id, to_file=to_file)
 
 if __name__ == "__main__":
   unittest.main()
