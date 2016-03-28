@@ -49,6 +49,12 @@ Further discussion on these topics is below providing some information
 on my use case which may help to understand the design decisions I
 have made.
 
+### Why Fruitpile
+
+The name Fruitpile comes from the notion that the artifacts are the
+_fruits_ of our labours and a _pile_ is simply a heap collection of
+things.  Essentially a heap of stuff which seems pretty apposite.
+
 ## States
 
 In my use case what was needed was the ability to take builds directly
