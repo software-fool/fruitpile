@@ -21,6 +21,7 @@ from argparse import ArgumentParser
 import pwd
 import os
 import sys
+from jinja2 import Environment, Template
 
 def fp_init_repo(ns):
   fp = Fruitpile(ns.path)
@@ -30,11 +31,15 @@ def fp_init_repo(ns):
   fp.close()
 
 def fp_list_filesets(ns):
+  template = Template('{{ "%10s | %-40s | %-10s"|format(item.id,item.name,item.repo.name) }}')
   fp = Fruitpile(ns.path)
   owner = os.getuid()
   fp.open()
   fss = fp.list_filesets(uid=owner)
-  print(fss)
+  print(template.render({"item":{"id":"FileSetID","name":"Name","repo":{"name":"Repo Name"}}}))
+  print("-----------+------------------------------------------+-----------")
+  for fs in fss:
+    print(template.render(item=fs))
   fp.close()
 
 def fp_add_filesets(ns):
@@ -70,11 +75,15 @@ def fp_add_file(ns):
   fp.close()
 
 def fp_list_files(ns):
+  template = Template("""FileSet: {{ "%-10d"|format(item.fileset_id) }} FileID: {{ "%10d"|format(item.id) }} Name: {{ "%s/%s"|format(item.path,item.name)}}
+state: {{ item.state.name }} rev: {{ item.revision }} ver: {{ item.version }} primary: {{ "%s"|format(item.primary) }}
 cksum: {{ item.checksum }}""")
   fp = Fruitpile(ns.path)
   owner = os.getuid()
   fp.open()
   bfs = fp.list_files(uid=owner)
+  for bf in bfs:
+    print(template.render(item=bf))
   fp.close()
 
 def fp_serve_repo(ns):
