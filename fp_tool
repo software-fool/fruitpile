@@ -1,0 +1,130 @@
+#!/usr/bin/env python
+# -*- mode: python -*-
+# Copyright (c) 2016 Dominic Binks (software-fool on github)
+# This file is part of Fruitpile.
+#
+# Fruitpile is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# Fruitpile is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Fruitpile.  If not, see <http://www.gnu.org/licenses/>.
+from __future__ import print_function
+from fruitpile import Fruitpile
+from argparse import ArgumentParser
+import pwd
+import os
+import sys
+
+def fp_init_repo(ns):
+  fp = Fruitpile(ns.path)
+  owner = os.getuid()
+  fp.init(uid=owner, username=pwd.getpwuid(owner)[0])
+  fp.open()
+  fp.close()
+
+def fp_list_filesets(ns):
+  fp = Fruitpile(ns.path)
+  owner = os.getuid()
+  fp.open()
+  fss = fp.list_filesets(uid=owner)
+  print(fss)
+
+def fp_add_filesets(ns):
+  fp = Fruitpile(ns.path)
+  owner = os.getuid()
+  fp.open()
+  fss = fp.add_new_fileset(uid=owner, name=ns.name)
+  print(fss)
+
+def fp_add_file(ns):
+  fp = Fruitpile(ns.path)
+  owner = os.getuid()
+  fp.open()
+  fss = fp.list_filesets(uid=owner)
+  fs = None
+  for fs in fss:
+    if fs.name == ns.fileset:
+      fs = fp.add_file(uid=owner,
+                       fileset_id=fs.id,
+                       name=ns.name,
+                       path=ns.repopath,
+                       version=ns.version,
+                       revision=ns.revision,
+                       primary=(not ns.auxilliary),
+                       source=ns.origin,
+                       source_file=ns.source_file)
+      break
+  if fs:
+    print(fs)
+  else:
+    print("Failed to add file")
+
+def fp_list_files(ns):
+  fp = Fruitpile(ns.path)
+  owner = os.getuid()
+  fp.open()
+  bfs = fp.list_files(uid=owner)
+  print(bfs)
+
+def fp_serve_repo(ns):
+  print("SERVE: %s" % (ns))
+
+def fp_tool_main(args):
+  parser = ArgumentParser(description="Fruitpile command line tool")
+  parser.add_argument("path", help="Path to Fruitpile store")
+  subparsers = parser.add_subparsers(help="sub-command help")
+
+  # init
+  parser_init = subparsers.add_parser("init", help="Help for the init command")
+  parser_init.set_defaults(func=fp_init_repo)
+
+  # list filesets
+  parser_list_fss = subparsers.add_parser("lsfs", help="List filesets in store")
+  parser_list_fss.set_defaults(func=fp_list_filesets)
+
+  # add fileset
+  parser_add_fss = subparsers.add_parser("addfs", help="Add a new fileset in store")
+  parser_add_fss.add_argument("name", help="Fileset name to add")
+  parser_add_fss.set_defaults(func=fp_add_filesets)
+
+  # add file
+  parser_add_file = subparsers.add_parser("add", help="Add a new file in a filset")
+  parser_add_file.add_argument("-f","--fileset", required=True,
+                               help="Name of the fileset to add this file")
+  parser_add_file.add_argument("-V","--version", required=True,
+                               help="Version of the file being added")
+  parser_add_file.add_argument("-r","--revision", required=True,
+                               help="Revision of the file being added")
+  parser_add_file.add_argument("-a","--auxilliary", action='store_true',
+                               help="Indicates that this file is a auxilliary file")
+  parser_add_file.add_argument("-s","--source_file", required=True,
+                               help="File to add to the store")
+  parser_add_file.add_argument("-o","--origin", required=True,
+                               help="Origin of this file")
+  parser_add_file.add_argument("-n","--name", required=True,
+                               help="Name of file in repo")
+  parser_add_file.add_argument("-p", "--repopath", required=True,
+                               help="Path to the file in the repo fileset")
+  parser_add_file.set_defaults(func=fp_add_file)
+
+  # list files
+  parser_list_files = subparsers.add_parser("ls", help="List files in the repo")
+  parser_list_files.set_defaults(func=fp_list_files)
+
+  # server
+  parser_serve = subparsers.add_parser("serve", help="Help for the serve command")
+  parser_serve.set_defaults(func=fp_serve_repo)
+  
+  ns = parser.parse_args(args)
+  ns.func(ns)
+  
+  
+if __name__ == "__main__":
+  fp_tool_main(sys.argv[1:])
