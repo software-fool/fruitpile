@@ -541,7 +541,7 @@ class TestFruitpileStateTransitOperations(unittest.TestCase):
     self.assertEquals(len(bfs), 1)
     bf0 = bfs[0]
     self.assertEquals(bf0.state.name, "testing")
-    self.assertGreater(bf0.update_date-bf0.create_date, timedelta(milliseconds=20))
+    self.assertNotEquals(bf0.update_date, bf0.create_date)
 
   def test_create_file_and_transit_through_api_invalid_state(self):
     with self.assertRaises(FPLInvalidStateTransition):
