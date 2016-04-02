@@ -74,9 +74,13 @@ def fp_add_file(ns):
   fp.close()
 
 def fp_list_files(ns):
-  template = Template("""FileSet: {{ "%-10d"|format(item.fileset_id) }} FileID: {{ "%10d"|format(item.id) }} Name: {{ "%s/%s"|format(item.path,item.name)}}
-state: {{ item.state.name }} rev: {{ item.revision }} ver: {{ item.version }} primary: {{ "%s"|format(item.primary) }}
-cksum: {{ item.checksum }}""")
+  if ns.long:
+    template = Template("""{{ "%10d/%-10d"|format(item.fileset_id,item.id) }} {{ "%s/%s"|format(item.path,item.name)}}
+{{ item.state.name }} @ {{ item.revision }} version: {{ item.version }} {{ "auxilliary" if not item.primary }}
+cksum: {{ item.checksum }}
+--""")
+  else:
+    template = Template("""{{ "%6d %10d"|format(item.fileset_id,item.id) }} {{ "%10s"|format(item.state.name) }} {{ "%s@%-10s"|format(item.version,item.revision) }}{{ "A" if not item.primary }}{{ "P" if item.primary }} {{ "%s/%s"|format(item.path,item.name)}}""")
   fp = Fruitpile(ns.path)
   owner = os.getuid()
   fp.open()
@@ -144,6 +148,8 @@ def fp_tool_main(args):
 
   # list files
   parser_list_files = subparsers.add_parser("ls", help="List files in the repo")
+  parser_list_files.add_argument("-l", "--long", action='store_true', default=False,
+                                 help="Give a longer list of file information")
   parser_list_files.set_defaults(func=fp_list_files)
 
   # transit file
