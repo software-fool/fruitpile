@@ -47,7 +47,6 @@ def fp_add_filesets(ns):
   owner = os.getuid()
   fp.open()
   fss = fp.add_new_fileset(uid=owner, name=ns.name)
-  print(fss)
   fp.close()
 
 def fp_add_file(ns):
