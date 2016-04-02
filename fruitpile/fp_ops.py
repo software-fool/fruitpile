@@ -136,6 +136,7 @@ class Fruitpile(object):
     checksum = _checksum_file(srcfob, sha256)
     name = kwargs.get("name")
     path = kwargs.get("path")
+    jot = datetime.now()
     bf = BinFile(fileset_id=kwargs.get("fileset_id"),
                  name=name,
                  path=path,
@@ -143,8 +144,8 @@ class Fruitpile(object):
                  revision=kwargs.get("revision"),
                  primary=kwargs.get("primary"),
                  state_id=self.state_map["untested"],
-                 create_date=datetime.now(),
-                 update_date=datetime.now(),
+                 create_date=jot,
+                 update_date=jot,
                  source=kwargs.get("source"),
                  checksum=checksum)
     self.session.add(bf)
@@ -177,6 +178,7 @@ class Fruitpile(object):
       raise FPLInvalidTargetForStateChange("binfile with id=%d is not an auxilliary file" % (file_id))
     new_state = self.sm.transit(uid, self.perm_manager, req_state, self)
     bf.state_id = self.sm.state_id
+    bf.update_date = datetime.now()
     self.session.commit()
     return bf
 

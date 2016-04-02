@@ -20,6 +20,7 @@ import os
 import sys
 import sqlite3
 import pprint
+from datetime import datetime, timedelta
 
 mydir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
 sys.path.append(os.path.dirname(mydir))
@@ -219,6 +220,8 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
     bfs = self.fp.list_files(uid=1046)
     self.assertEquals(len(bfs), 1)
     self.assertEquals(bfs[0], bf)
+    self.assertLessEqual(datetime.now()-bf.create_date, timedelta(seconds=1))
+    self.assertLessEqual(datetime.now()-bf.update_date, timedelta(seconds=1))
 
   def test_add_multiple_files_to_fileset(self):
     bfs0 = self.fp.list_files(uid=1046)
@@ -538,25 +541,30 @@ class TestFruitpileStateTransitOperations(unittest.TestCase):
     self.assertEquals(len(bfs), 1)
     bf0 = bfs[0]
     self.assertEquals(bf0.state.name, "testing")
+    self.assertGreater(bf0.update_date-bf0.create_date, timedelta(milliseconds=20))
 
   def test_create_file_and_transit_through_api_invalid_state(self):
     with self.assertRaises(FPLInvalidStateTransition):
       bf = self.fp.transit_file(uid=1046, file_id=self.bf.id, req_state="approved")
     self.assertEquals(self.bf.state_id, 1)
+    self.assertEquals(self.bf.update_date, self.bf.create_date)
 
   def test_create_file_and_transit_to_unknown_state(self):
     with self.assertRaises(FPLInvalidState):
       bf = self.fp.transit_file(uid=1046, file_id=self.bf.id, req_state="happy-birthday")
     self.assertEquals(self.bf.state_id, 1)
+    self.assertEquals(self.bf.update_date, self.bf.create_date)
 
   def test_create_file_and_try_transit_without_permission(self):
     with self.assertRaises(FPLPermissionDenied):
       bf = self.fp.transit_file(uid=1047, file_id=self.bf.id, req_state="testing")
     self.assertEquals(self.bf.state_id, 1)
+    self.assertEquals(self.bf.update_date, self.bf.create_date)
 
   def test_create_file_and_try_to_transit_unknown_file(self):
     with self.assertRaises(FPLBinFileNotExists):
       bf = self.fp.transit_file(uid=1046, file_id=self.bf.id+1, req_state="testing")
+    self.assertEquals(self.bf.update_date, self.bf.create_date)
 
   def test_attempt_to_transit_an_auxilliary_file(self):
     bf = self.fp.add_file(
@@ -571,6 +579,7 @@ class TestFruitpileStateTransitOperations(unittest.TestCase):
         source="buildbot")
     with self.assertRaises(FPLInvalidTargetForStateChange):
       bf = self.fp.transit_file(uid=1046, file_id=bf.id, req_state="testing")
+    self.assertEquals(self.bf.update_date, self.bf.create_date)
 
 class TestFruitpileGetFileFromRepo(unittest.TestCase):
 
