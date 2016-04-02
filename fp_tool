@@ -90,7 +90,7 @@ def fp_serve_repo(ns):
   print("SERVE: %s" % (ns))
 
 def fp_tool_main(args):
-  parser = ArgumentParser(description="Fruitpile command line tool")
+  parser = ArgumentParser(prog="fp_tool", description="Fruitpile command line tool")
   parser.add_argument("path", help="Path to Fruitpile store")
   subparsers = parser.add_subparsers(help="sub-command help")
 
