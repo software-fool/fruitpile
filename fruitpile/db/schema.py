@@ -53,8 +53,8 @@ class Transition(Base):
 
   start_id = Column(Integer, ForeignKey('states.id'), nullable=False)
   end_id = Column(Integer, ForeignKey('states.id'), nullable=False)
-  start = relationship('State', primaryjoin="State.id==Transition.start_id")
-  end = relationship('State', primaryjoin="State.id==Transition.end_id")
+  start = relationship('State', primaryjoin="State.id==Transition.start_id", foreign_keys=[start_id])
+  end = relationship('State', primaryjoin="State.id==Transition.end_id", foreign_keys=[end_id])
   transfn_id = Column(Integer, ForeignKey('transfuncs.id'))
   transfn = relationship('TransitionFunction', back_populates='transitions')
   perm_id = Column(Integer, ForeignKey('permissions.id'), nullable=False)
