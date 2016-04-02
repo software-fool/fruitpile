@@ -16,7 +16,7 @@
 # You should have received a copy of the GNU General Public License
 # along with Fruitpile.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import print_function
-from fruitpile import Fruitpile
+from fruitpile import Fruitpile, FPLInvalidState, FPLBinFileNotExists, FPLInvalidTargetForStateChange, FPLInvalidStateTransition
 from argparse import ArgumentParser
 import pwd
 import os
@@ -86,6 +86,22 @@ cksum: {{ item.checksum }}""")
     print(template.render(item=bf))
   fp.close()
 
+def fp_transit_file(ns):
+  fp = Fruitpile(ns.path)
+  owner = os.getuid()
+  fp.open()
+  try:
+    bf = fp.transit_file(uid=owner, file_id=ns.id, req_state=ns.state)
+  except FPLInvalidState as e:
+    print("requested state '%s' is not recognised" % (ns.state))
+  except FPLBinFileNotExists as e:
+    print("File id %d cannot be found" % (ns.id))
+  except FPLInvalidTargetForStateChange as e:
+    print("attempted to change state on an auxilliary file")
+  except FPLInvalidStateTransition as e:
+    print("the transition to state '%s' for file id %d is not permitted" % (ns.state, ns.id))
+  fp.close()
+    
 def fp_serve_repo(ns):
   print("SERVE: %s" % (ns))
 
@@ -130,6 +146,12 @@ def fp_tool_main(args):
   # list files
   parser_list_files = subparsers.add_parser("ls", help="List files in the repo")
   parser_list_files.set_defaults(func=fp_list_files)
+
+  # transit file
+  parser_transit_file = subparsers.add_parser("transit", help="transit file state in repo")
+  parser_transit_file.add_argument("-i","--id", type=int, required=True, help="File id of the file to be transitted")
+  parser_transit_file.add_argument("-s","--state", required=True, help="New state of the item")
+  parser_transit_file.set_defaults(func=fp_transit_file)
 
   # server
   parser_serve = subparsers.add_parser("serve", help="Help for the serve command")

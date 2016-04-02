@@ -75,6 +75,7 @@ class Fruitpile(object):
     for state in states:
       self.state_map[state.name] = state.id
     self.perm_manager = PermissionManager(self.session)
+    self.sm = StateMachine.create_state_machine(self.session)
 
   def init(self, **kwargs):
     if os.path.exists(self.path):
@@ -175,7 +176,7 @@ class Fruitpile(object):
       raise FPLBinFileNotExists("binfile with id=%d cannot be found" % (file_id))
     bf = bf[0]
     if not bf.primary:
-      raise FPLInvalidTargetForStateChange("binfile with id=%d is not an auxilliary file" % (file_id))
+      raise FPLInvalidTargetForStateChange("binfile with id=%d is an auxilliary file" % (file_id))
     new_state = self.sm.transit(uid, self.perm_manager, req_state, self)
     bf.state_id = self.sm.state_id
     bf.update_date = datetime.now()
