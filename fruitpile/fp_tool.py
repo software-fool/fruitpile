@@ -31,17 +31,17 @@ def fp_init_repo(ns):
   fp.open()
   fp.close()
 
-def fp_list_filesets(ns, fob=sys.stdout):
+def fp_list_filesets(ns, outfob=sys.stdout, errfob=sys.stderr):
   template = Template('{{ " %-10s %10s %8s %8s %-40s"|format(item.repo.name, item.id,item.version,item.revision,item.name) }}')
   fp = Fruitpile(ns.path)
   owner = os.getuid()
   fp.open()
   fss = fp.list_filesets(uid=owner)
   for fs in fss:
-    print(template.render(item=fs), file=fob)
+    print(template.render(item=fs), file=outfob)
   fp.close()
 
-def fp_add_filesets(ns, fob=sys.stdout):
+def fp_add_filesets(ns, outfob=sys.stdout, errfob=sys.stderr):
   fp = Fruitpile(ns.path)
   owner = os.getuid()
   fp.open()
@@ -51,10 +51,10 @@ def fp_add_filesets(ns, fob=sys.stdout):
                              revision=ns.revision,
                              name=ns.name)
   except FPLFileSetExists as e:
-    print("Fileset '{0}' already exists".format(str(ns.name)), file=fob)
+    print("Fileset '{0}' already exists".format(str(ns.name)), file=outfob)
   fp.close()
 
-def fp_add_file(ns, fob=sys.stdout):
+def fp_add_file(ns, outfob=sys.stdout, errfob=sys.stderr):
   fp = Fruitpile(ns.path)
   owner = os.getuid()
   fp.open()
@@ -71,10 +71,10 @@ def fp_add_file(ns, fob=sys.stdout):
                        source_file=ns.source_file)
       break
   if not bf:
-    print("Failed to add file, fileset '{0}' not found".format(str(ns.fileset)), file=fob)
+    print("Failed to add file, fileset '{0}' not found".format(str(ns.fileset)), file=errfob)
   fp.close()
 
-def fp_list_files(ns, fob=sys.stdout):
+def fp_list_files(ns, outfob=sys.stdout, errfob=sys.stdout):
   if ns.long:
     template = Template("""{{ "%10d/%-10d"|format(item.fileset_id,item.id) }} {{ "%s/%s"|format(item.path,item.name)}}
 {{ item.state.name }} {{ "auxilliary" if not item.primary }}
@@ -87,24 +87,24 @@ cksum: {{ item.checksum }}
   fp.open()
   bfs = fp.list_files(uid=owner)
   for bf in bfs:
-    print(template.render(item=bf), file=fob)
+    print(template.render(item=bf), file=outfob)
   fp.close()
 
-def fp_transit_file(ns, fob=sys.stdout):
+def fp_transit_file(ns, outfob=sys.stdout, errfob=sys.stderr):
   fp = Fruitpile(ns.path)
   owner = os.getuid()
   fp.open()
   try:
     bf = fp.transit_file(uid=owner, file_id=ns.id, req_state=ns.state)
   except FPLInvalidState as e:
-    print("requested state '{0}' is not recognised".format(ns.state), file=fob)
+    print("requested state '{0}' is not recognised".format(ns.state), file=errfob)
   except FPLBinFileNotExists as e:
-    print("file id {0} cannot be found".format(ns.id), file=fob)
+    print("file id {0} cannot be found".format(ns.id), file=errfob)
   except FPLInvalidTargetForStateChange as e:
     print(e)
-    print("attempted to change state on an auxilliary file", file=fob)
+    print("attempted to change state on an auxilliary file", file=errfob)
   except FPLInvalidStateTransition as e:
-    print("the transition to state '{0}' for file id {1} is not permitted".format(ns.state, ns.id), file=fob)
+    print("the transition to state '{0}' for file id {1} is not permitted".format(ns.state, ns.id), file=errfob)
   fp.close()
     
 def fp_serve_repo(ns):
