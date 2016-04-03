@@ -177,6 +177,12 @@ def fp_tool_main(args):
   parser_transit_file.add_argument("-s","--state", required=True, help="New state of the item")
   parser_transit_file.set_defaults(func=fp_transit_file)
 
+  # get a file
+  parser_get_file = subparsers.add_parser("get", help="retrieve a file from the repo")
+  parser_get_file.add_argument("-i","--id", type=int, required=True, help="File id of the file to be retrieved from the repo")
+  parser_get_file.add_argument("-t","--to-file", required=True, help="Name of the file to copy the contents to")
+  parser_get_file.set_defaults(func=fp_get_file)
+
   # server
   parser_serve = subparsers.add_parser("serve", help="Help for the serve command")
   parser_serve.set_defaults(func=fp_serve_repo)
