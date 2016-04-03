@@ -21,7 +21,6 @@ from importlib import import_module
 from .fp_exc import *
 from .fp_perms import PermissionManager
 from .fp_constants import *
-from .fp_init import init_data
 from .fp_state import StateMachine
 import os
 from datetime import datetime
@@ -84,11 +83,10 @@ class Fruitpile(object):
       raise FPLConfiguration('cannot access the target directory')
     os.mkdir(self.path)
     self.engine = create_engine('sqlite:///%s' % (self.dbpath))
-    Base.metadata.create_all(bind=self.engine)
+    upgrade(self.engine, kwargs.get("uid"), kwargs.get("username"), self.path)
     Session = sessionmaker(bind=self.engine)
     self.session = Session()
     # Initialise the static data in the database
-    init_data(self.session, kwargs.get("uid"), kwargs.get("username"), self.path)
     self.sm = StateMachine.create_state_machine(self.session)
 
   def close(self):

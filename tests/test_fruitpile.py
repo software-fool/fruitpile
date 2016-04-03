@@ -60,15 +60,18 @@ class TestFruitpileInitOperations(unittest.TestCase):
     self.assertNotEquals(conn, None)
     curs = conn.execute("SELECT * FROM SQLITE_MASTER")
     rows = curs.fetchall()
-    expected_tables = ["states",
-                       "transfuncs",
-                       "transitions",
-                       "permissions",
-                       "users",
-                       "user_perms",
-                       "repos",
-                       "filesets",
-                       "binfiles"]
+    expected_tables = [
+      "binfiles",
+      "filesets",
+      "migrations",
+      "permissions",
+      "repos",
+      "states",
+      "transfuncs",
+      "transitions",
+      "user_perms",
+      "users"
+    ]
     for r in rows:
       if r[0] == "table":
         self.assertTrue(r[1] in expected_tables)
@@ -77,6 +80,19 @@ class TestFruitpileInitOperations(unittest.TestCase):
     self.assertEquals(len(rows), 1)
     # id, name, path, manager
     self.assertEquals(rows[0], (1,"default",self.store_path,"FileManager"))
+
+  def test_init_a_new_repo_downgrade(self):
+    fp = Fruitpile(self.store_path)
+    fp.init(uid=1046, username="db")
+    self.assertTrue(os.path.exists(self.store_path))
+    downgrade(fp.engine)
+    dbpath = os.path.join(self.store_path, "fpl.db")
+    self.assertTrue(os.path.exists(dbpath))
+    conn = sqlite3.connect(dbpath)
+    self.assertNotEquals(conn, None)
+    curs = conn.execute("SELECT * FROM SQLITE_MASTER")
+    rows = curs.fetchall()
+    self.assertEquals(rows, [])
 
   def test_init_a_new_repo_when_path_exists(self):
     with self.assertRaises(FPLExists):

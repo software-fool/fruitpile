@@ -21,7 +21,18 @@ from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine
 from sqlalchemy.exc import IntegrityError
 
+from ..fp_constants import *
+
 Base = declarative_base()
+
+class Migration(Base):
+  __tablename__ = 'migrations'
+
+  id = Column(Integer, primary_key=True)
+  script = Column(String(255), unique=True, nullable=False)
+
+  def __repr__(self):
+    return "<Migration(id=%d, script=%s)>" % (self.id, self.script)
 
 class State(Base):
   __tablename__ = 'states'
@@ -171,8 +182,43 @@ class BinFile(Base):
   def __repr__(self):
     return "<BinFile(name='%s', path='%s')>" % (self.name, self.path)
 
-  def write(data):
-    fob = open(self.path, "wb")
-    fob.write(data)
-
+def upgrade(engine, uid, username, path):
+  Base.metadata.create_all(bind=engine)
+  Session = sessionmaker(bind=engine)
+  session = Session()
+  rp = Repo(name="default", path=path, repo_type="FileManager")
+  session.add(rp)
+  session.add(User(uid=uid, name=username))
+  for name in Capability.keys():
+    cap = Capability.get(name)
+    session.add(Permission(id=cap.ident, name=cap.name, desc=cap.description))
+    session.add(UserPermission(user_id=uid, perm_id=cap.ident)) 
+  state_dict = {}
+  for sname in ["untested","testing","tested","approved","released","withdrawn"]:
+    state = State(name=sname)
+    session.add(state)
+  session.commit()
+  for s in session.query(State).all():
+    state_dict[s.name] = s
+  for transition in [("untested","testing",None,Capability.BEGIN_TESTING),
+                     ("untested","withdrawn",None,Capability.WITHDRAW_ARTIFACT),
+                     ("testing","tested",None,Capability.ARTIFACT_TESTED),
+                     ("testing","withdrawn",None,Capability.WITHDRAW_ARTIFACT),
+                     ("tested","approved",None,Capability.APPROVE_ARTIFACT),
+                     ("tested","withdrawn",None,Capability.WITHDRAW_ARTIFACT),
+                     ("approved","released",None,Capability.RELEASE_ARTIFACT),
+                     ("approved","withdrawn",None,Capability.WITHDRAW_ARTIFACT)]:
+    start_id = state_dict[transition[0]].id
+    end_id= state_dict[transition[1]].id
+    session.add(Transition(start_id=start_id,
+                           end_id=end_id,
+                           transfn_id=transition[2],
+                           perm_id=transition[3]))
+  mig = Migration(id=1, script=__name__)
+  session.add(mig)
+  session.commit()
+  session.close()
+ 
+def downgrade(engine):
+  Base.metadata.drop_all(bind=engine)
 
