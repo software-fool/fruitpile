@@ -192,7 +192,7 @@ class TestFPToolFileOps(unittest.TestCase):
   def test_add_file_long_list(self):
     tmp_path = "/tmp/sample_file%d.txt" % (os.getpid())
     tmp_fob = io.open(tmp_path, "wb")
-    tmp_fob.write("This is some text")
+    tmp_fob.write(b"This is some text")
     tmp_fob.close()
     ns = Namespace(path=self.path,
                    fileset="build-1",
@@ -210,7 +210,7 @@ class TestFPToolFileOps(unittest.TestCase):
   def test_add_two_files_two_filesets_long_list(self):
     tmp_path = "/tmp/sample_file%d.txt" % (os.getpid())
     tmp_fob = io.open(tmp_path, "wb")
-    tmp_fob.write("This is some text")
+    tmp_fob.write(b"This is some text")
     tmp_fob.close()
     ns = Namespace(path=self.path,
                    fileset="build-1",
@@ -239,7 +239,7 @@ class TestFPToolFileOps(unittest.TestCase):
   def test_add_two_files_to_single_fileset_long_list(self):
     tmp_path = "/tmp/sample_file%d.txt" % (os.getpid())
     tmp_fob = io.open(tmp_path, "wb")
-    tmp_fob.write("This is some text")
+    tmp_fob.write(b"This is some text")
     tmp_fob.close()
     ns = Namespace(path=self.path,
                    fileset="build-1",
