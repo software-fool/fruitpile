@@ -63,3 +63,6 @@ class FPLInvalidTargetForStateChange(FruitpileError):
 
 class FPLFileExists(FruitpileError):
   pass
+
+class FPLCannotWriteFile(FruitpileError):
+  pass

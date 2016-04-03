@@ -17,7 +17,7 @@
 # along with Fruitpile.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import print_function
 from __future__ import unicode_literals
-from fruitpile import Fruitpile, FPLInvalidState, FPLBinFileNotExists, FPLInvalidTargetForStateChange, FPLInvalidStateTransition, FPLFileSetExists
+from fruitpile import Fruitpile, FPLInvalidState, FPLBinFileNotExists, FPLInvalidTargetForStateChange, FPLInvalidStateTransition, FPLFileSetExists, FPLFileExists, FPLCannotWriteFile
 from argparse import ArgumentParser
 import pwd
 import os
@@ -105,6 +105,22 @@ def fp_transit_file(ns, outfob=sys.stdout, errfob=sys.stderr):
     print("attempted to change state on an auxilliary file", file=errfob)
   except FPLInvalidStateTransition as e:
     print("the transition to state '{0}' for file id {1} is not permitted".format(ns.state, ns.id), file=errfob)
+  fp.close()
+
+def fp_get_file(ns, outfob=sys.stdout, errfob=sys.stderr):
+  fp = Fruitpile(ns.path)
+  owner = os.getuid()
+  fp.open()
+  try:
+    found = fp.get_file(uid=owner,
+                        file_id=ns.id,
+                        to_file=ns.to_file)
+  except FPLBinFileNotExists as e:
+    print("the file with id {} cannot be found".format(ns.id), file=errfob)
+  except FPLFileExists as e:
+    print("the target file '{}' already exists, not overwriting".format(ns.to_file), file=errfob)
+  except FPLCannotWriteFile as e:
+    print("the target file '{}' cannot be written to".format(ns.to_file), file=errfob)
   fp.close()
     
 def fp_serve_repo(ns):

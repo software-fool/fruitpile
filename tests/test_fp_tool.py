@@ -416,5 +416,93 @@ class TestFPToolTransitOperations(unittest.TestCase):
       fp_transit_file(ns)
     self._check_fails_withdrawn()
 
+class TestFPToolGetFileOperations(unittest.TestCase):
+
+  def setUp(self):
+    self.path = "/tmp/fptool.%d" % (os.getpid())
+    ns = Namespace(path=self.path)
+    fp_init_repo(ns)
+    ns = Namespace(path=self.path, version="3.1", revision="1", name="build-1")
+    fob = StringIO()
+    fp_add_filesets(ns, outfob=fob)
+    self.assertEquals(fob.getvalue(), "")
+    ns = Namespace(path=self.path,
+                   fileset="build-1",
+                   name="requirements.txt",
+                   repopath="builds",
+                   auxilliary=False,
+                   origin="buildbot",
+                   source_file="requirements.txt")
+    fob = StringIO()
+    fp_add_file(ns, outfob=fob)
+    self.assertEquals(fob.getvalue(), "")
+    ns = Namespace(path=self.path,
+                   fileset="build-1",
+                   name="requirements-2.txt",
+                   repopath="builds",
+                   auxilliary=True,
+                   origin="buildbot",
+                   source_file="requirements.txt")
+    fob = StringIO()
+    fp_add_file(ns, outfob=fob)
+    self.assertEquals(fob.getvalue(), "")
+    self.dest_path = "/tmp/tmp_file.{}".format(os.getpid())
+
+  def tearDown(self):
+    clear_tree(self.path)
+    try:
+      os.remove(self.dest_path)
+    except:
+      pass
+
+  def test_get_a_copy_of_a_file(self):
+    ns = Namespace(path=self.path, id=1, to_file=self.dest_path)
+    outfob = StringIO()
+    errfob = StringIO()
+    fp_get_file(ns, outfob=outfob, errfob=errfob)
+    self.assertEquals(outfob.getvalue(), "")
+    self.assertEquals(errfob.getvalue(), "")
+    obytes = io.open(self.dest_path, "rb").read()
+    nbytes = io.open("requirements.txt", "rb").read()
+    self.assertEquals(obytes, nbytes)
+
+  def test_get_a_copy_of_auxilliary_file(self):
+    ns = Namespace(path=self.path, id=2, to_file=self.dest_path)
+    outfob = StringIO()
+    errfob = StringIO()
+    fp_get_file(ns, outfob=outfob, errfob=errfob)
+    self.assertEquals(outfob.getvalue(), "")
+    self.assertEquals(errfob.getvalue(), "")
+    obytes = io.open(self.dest_path, "rb").read()
+    nbytes = io.open("requirements.txt", "rb").read()
+    self.assertEquals(obytes, nbytes)
+      
+  def test_try_to_get_non_existent_file(self):
+    ns = Namespace(path=self.path, id=5, to_file=self.dest_path)
+    outfob = StringIO()
+    errfob = StringIO()
+    fp_get_file(ns, outfob=outfob, errfob=errfob)
+    self.assertEquals(outfob.getvalue(), "")
+    self.assertEquals(errfob.getvalue(), "the file with id 5 cannot be found\n")
+
+  def test_try_to_overwrite_file_with_get_file(self):
+    io.open(self.dest_path, "wb").close()
+    ns = Namespace(path=self.path, id=1, to_file=self.dest_path)
+    outfob = StringIO()
+    errfob = StringIO()
+    fp_get_file(ns, outfob=outfob, errfob=errfob)
+    self.assertEquals(outfob.getvalue(), "")
+    self.assertEquals(errfob.getvalue(), "the target file '{}' already exists, not overwriting\n".format(self.dest_path))
+
+  def test_try_to_write_to_not_permitted_location(self):
+    new_path = "/root/cannot_write_here"
+    print(new_path)
+    ns = Namespace(path=self.path, id=1, to_file=new_path)
+    outfob = StringIO()
+    errfob = StringIO()
+    fp_get_file(ns, outfob=outfob, errfob=errfob)
+    self.assertEquals(outfob.getvalue(), "")
+    self.assertEquals(errfob.getvalue(), "the target file '{}' cannot be written to\n".format(new_path))
+
 if __name__ == "__main__":
   unittest.main()
