@@ -280,8 +280,140 @@ class TestFPToolFileOps(unittest.TestCase):
     self.check_output(ns, ["1","1","untested","A", "builds/requirements.txt"])
 
 
+class TestFPToolTransitOperations(unittest.TestCase):
+
+  def setUp(self):
+    self.path = "/tmp/fptool.%d" % (os.getpid())
+    ns = Namespace(path=self.path)
+    fp_init_repo(ns)
+    ns = Namespace(path=self.path, version="3.1", revision="1", name="build-1")
+    fob = StringIO()
+    fp_add_filesets(ns, fob=fob)
+    self.assertEquals(fob.getvalue(), "")
+    ns = Namespace(path=self.path, 
+                   fileset="build-1",
+                   name="requirements.txt",
+                   repopath="builds",
+                   auxilliary=False,
+                   origin="buildbot",
+                   source_file="requirements.txt")
+    fob = StringIO()
+    fp_add_file(ns, fob=fob)
+    self.assertEquals(fob.getvalue(), "")
+    ns = Namespace(path=self.path, 
+                   fileset="build-1",
+                   name="requirements-2.txt",
+                   repopath="builds",
+                   auxilliary=True,
+                   origin="buildbot",
+                   source_file="requirements.txt")
+    fob = StringIO()
+    fp_add_file(ns, fob=fob)
+    self.assertEquals(fob.getvalue(), "")
+
+  def tearDown(self):
+    clear_tree(self.path)
+
+  def test_transit_file_to_testing(self):
+    ns = Namespace(path=self.path, id=1, state="testing")
+    fob = StringIO()
+    fp_transit_file(ns, fob=fob)
+    self.assertEquals(fob.getvalue(), "")
+    fob = StringIO()
+    ns = Namespace(path=self.path, long=False)
+    fp_list_files(ns, fob=fob)
+    txt = fob.getvalue()
+    words = txt.split()
+    self.assertEquals(words, ["1","1","testing","P","builds/requirements.txt",
+                              "1","2","untested","A","builds/requirements-2.txt"])
+
+  def test_transit_auxilliary_file(self):
+    ns = Namespace(path=self.path, id=2, state="testing")
+    fob = StringIO()
+    fp_transit_file(ns, fob=fob)
+    txt = fob.getvalue()
+    self.assertEquals(txt, "attempted to change state on an auxilliary file\n")
+
+  def test_transit_incorrect_state(self):
+    ns = Namespace(path=self.path, id=1, state="released")
+    fob = StringIO()
+    fp_transit_file(ns, fob=fob)
+    txt = fob.getvalue()
+    self.assertEquals(txt, "the transition to state 'released' for file id 1 is not permitted\n")
+
+  def test_transit_unknown_state(self):
+    ns = Namespace(path=self.path, id=1, state="jelly")
+    fob = StringIO()
+    fp_transit_file(ns, fob=fob)
+    txt = fob.getvalue()
+    self.assertEquals(txt, "requested state 'jelly' is not recognised\n")
+
+  def test_transit_unknown_file(self):
+    ns = Namespace(path=self.path, id=3, state="testing")
+    fob = StringIO()
+    fp_transit_file(ns, fob=fob)
+    txt = fob.getvalue()
+    self.assertEquals(txt, "file id 3 cannot be found\n")
+
+  def test_transit_file_through_all_states(self):
+    for state in ["testing","tested","approved","released"]:
+      ns = Namespace(path=self.path, id=1, state=state)
+      fob = StringIO()
+      fp_transit_file(ns, fob=fob)
+      self.assertEquals(fob.getvalue(), "")
+      fob = StringIO()
+      ns = Namespace(path=self.path, long=False)
+      fp_list_files(ns, fob=fob)
+      txt = fob.getvalue()
+      words = txt.split()
+      self.assertEquals(words, ["1","1",state,"P","builds/requirements.txt",
+                                "1","2","untested","A","builds/requirements-2.txt"])
+
+  def _withdraw(self):
+    ns = Namespace(path=self.path, id=1, state="withdrawn")
+    fob = StringIO()
+    fp_transit_file(ns, fob=fob)
+    return fob
+
+  def _check_withdrawn(self):
+    fob = self._withdraw()
+    self.assertEquals(fob.getvalue(), "")
+    ns = Namespace(path=self.path, long=False)
+    fp_list_files(ns, fob=fob)
+    txt = fob.getvalue()
+    words = txt.split()
+    self.assertEquals(words, ["1","1","withdrawn","P","builds/requirements.txt",
+                              "1","2","untested","A","builds/requirements-2.txt"])
+
+  def test_transit_file_untested_to_withdrawn(self):
+    self._check_withdrawn()
+
+  def test_transit_file_testing_to_withdrawn(self):
+    ns = Namespace(path=self.path, id=1, state="testing")
+    fp_transit_file(ns)
+    self._check_withdrawn()
+
+  def test_transit_file_tested_to_withdrawn(self):
+    for s in ["testing","tested"]:
+      ns = Namespace(path=self.path, id=1, state=s)
+      fp_transit_file(ns)
+    self._check_withdrawn()
+
+  def test_transit_file_approved_to_withdrawn(self):
+    for s in ["testing","tested","approved"]:
+      ns = Namespace(path=self.path, id=1, state=s)
+      fp_transit_file(ns)
+    self._check_withdrawn()
+
+  def _check_fails_withdrawn(self):
+    fob = self._withdraw()
+    self.assertEquals(fob.getvalue(), "the transition to state 'withdrawn' for file id 1 is not permitted\n")
+
+  def test_cant_tranit_from_released_to_withdrawn(self):
+    for s in ["testing","tested","approved","released"]:
+      ns = Namespace(path=self.path, id=1, state=s)
+      fp_transit_file(ns)
+    self._check_fails_withdrawn()
 
 if __name__ == "__main__":
   unittest.main()
-    
-  

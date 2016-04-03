@@ -90,20 +90,21 @@ cksum: {{ item.checksum }}
     print(template.render(item=bf), file=fob)
   fp.close()
 
-def fp_transit_file(ns):
+def fp_transit_file(ns, fob=sys.stdout):
   fp = Fruitpile(ns.path)
   owner = os.getuid()
   fp.open()
   try:
     bf = fp.transit_file(uid=owner, file_id=ns.id, req_state=ns.state)
   except FPLInvalidState as e:
-    print("requested state '%s' is not recognised" % (ns.state))
+    print("requested state '{0}' is not recognised".format(ns.state), file=fob)
   except FPLBinFileNotExists as e:
-    print("File id %d cannot be found" % (ns.id))
+    print("file id {0} cannot be found".format(ns.id), file=fob)
   except FPLInvalidTargetForStateChange as e:
-    print("attempted to change state on an auxilliary file")
+    print(e)
+    print("attempted to change state on an auxilliary file", file=fob)
   except FPLInvalidStateTransition as e:
-    print("the transition to state '%s' for file id %d is not permitted" % (ns.state, ns.id))
+    print("the transition to state '{0}' for file id {1} is not permitted".format(ns.state, ns.id), file=fob)
   fp.close()
     
 def fp_serve_repo(ns):

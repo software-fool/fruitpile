@@ -38,9 +38,9 @@ class StateMachine(object):
   def is_valid_state(self, state):
     return state in self._state_dict
 
-  def transit(self, uid, perm_man, new_state, obj):
+  def transit(self, uid, perm_man, old_state, new_state, obj):
     try:
-      valid_trans = self._transitions[self._state]
+      valid_trans = self._transitions[old_state]
     except KeyError:
       raise FPLUnknownState("An unknown state: %s" % (self._state))
     try:
@@ -49,7 +49,7 @@ class StateMachine(object):
       raise FPLInvalidStateTransition("Invalid state transition from %s to %s" % (self._state, new_state))
     perm_man.check_permission(uid, trans_control.capability)
     try:
-      trans_control.transfn(uid, perm_man, self._state, new_state, obj)
+      trans_control.transfn(uid, perm_man, old_state, new_state, obj)
     except Exception as exc:
       if isinstance(exc, FPLPermissionDenied):
         raise exc

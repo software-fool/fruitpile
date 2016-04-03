@@ -484,7 +484,7 @@ class TestFruitpileStateMachine(unittest.TestCase):
 
   def test_transition_from_one_state_to_another(self):
     sm = StateMachine.create_state_machine(self.fp.session)
-    sm.transit(1046, self.fp.perm_manager, "testing", self)
+    sm.transit(1046, self.fp.perm_manager, "untested", "testing", self)
     self.assertEquals(sm.state, "testing")
     self.assertEquals(self.called_back_uid, None)
     self.assertEquals(self.called_back_perm_man, None)
@@ -495,8 +495,9 @@ class TestFruitpileStateMachine(unittest.TestCase):
     sm = StateMachine.create_state_machine(self.fp.session)
     init_state = "untested"
     for s in ["testing","tested","approved","released"]:
-      new_state = sm.transit(1046, self.fp.perm_manager, s, self)
+      new_state = sm.transit(1046, self.fp.perm_manager, init_state, s, self)
       self.assertEquals(sm.state, new_state)
+      init_state = new_state
     self.assertEquals(self.called_back_uid, None)
     self.assertEquals(self.called_back_perm_man, None)
     self.assertEquals(self.called_back_old_state, None)
@@ -505,24 +506,24 @@ class TestFruitpileStateMachine(unittest.TestCase):
   def test_illegal_transition_1(self):
     sm = StateMachine.create_state_machine(self.fp.session)
     with self.assertRaises(FPLInvalidStateTransition):
-      new_state = sm.transit(1046, self.fp.perm_manager, "approved", self)
+      new_state = sm.transit(1046, self.fp.perm_manager, "untested", "approved", self)
 
   def test_illegal_transition_2(self):
     sm = StateMachine.create_state_machine(self.fp.session)
-    new_state = sm.transit(1046, self.fp.perm_manager, "testing", self)
+    new_state = sm.transit(1046, self.fp.perm_manager, "untested", "testing", self)
     with self.assertRaises(FPLInvalidStateTransition):
-      new_state = sm.transit(1046, self.fp.perm_manager, "approved", self)
+      new_state = sm.transit(1046, self.fp.perm_manager, "testing", "approved", self)
 
   def test_illegal_transition_3(self):
     sm = StateMachine.create_state_machine(self.fp.session)
-    new_state = sm.transit(1046, self.fp.perm_manager, "testing", self)
+    new_state = sm.transit(1046, self.fp.perm_manager, "untested", "testing", self)
     with self.assertRaises(FPLInvalidStateTransition):
-      new_state = sm.transit(1046, self.fp.perm_manager, "untested", self)
+      new_state = sm.transit(1046, self.fp.perm_manager, "testing", "untested", self)
 
   def test_user_without_permission_to_transition_state(self):
     sm = StateMachine.create_state_machine(self.fp.session)
     with self.assertRaises(FPLPermissionDenied):
-      new_state = sm.transit(1047, self.fp.perm_manager, "testing", self)
+      new_state = sm.transit(1047, self.fp.perm_manager, "untested", "testing", self)
 
 
 class TestFruitpileStateTransitOperations(unittest.TestCase):

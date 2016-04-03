@@ -61,13 +61,13 @@ class TestStateMachine(unittest.TestCase):
     sm = StateMachine()
     self.assertEquals(sm.state, None)
     with self.assertRaises(FPLUnknownState):
-      sm.transit(1000, None, "new_state", self)
+      sm.transit(1000, None, "start", "new_state", self)
 
   def test_simple_state_machine(self):
     sm = self.build_simple_state_machine(lambda a,b,c,d,e: None)
     self.assertEquals(sm.state, "start")
     pm = DummyPermManager(True)
-    new_state = sm.transit(100, pm, "end", self)
+    new_state = sm.transit(100, pm, "start", "end", self)
     self.assertEquals(new_state, "end")
 
   def test_simple_state_machine_permission_denied_transition(self):
@@ -75,14 +75,14 @@ class TestStateMachine(unittest.TestCase):
     self.assertEquals(sm.state, "start")
     pm = DummyPermManager(False)
     with self.assertRaises(FPLPermissionDenied):
-      new_state = sm.transit(100, pm, "end", self)
+      new_state = sm.transit(100, pm, "start", "end", self)
 
   def test_simple_state_machine_with_callback(self):
     sm = self.build_simple_state_machine(transition_function)
     self.assertEquals(sm.state, "start")
     pm = DummyPermManager(True)
     self.refuse_callback = None
-    new_state = sm.transit(100, pm, "end", self)
+    new_state = sm.transit(100, pm, "start", "end", self)
     self.assertEquals(new_state, "end")
     self.assertEquals(self.called_back_uid, 100)
     self.assertEquals(self.called_back_pm, pm)
@@ -96,7 +96,7 @@ class TestStateMachine(unittest.TestCase):
     self.refuse_callback = KeyError("TEST")
     new_state = None
     with self.assertRaises(FPLCannotTransitionState):
-      new_state = sm.transit(100, pm, "end", self)
+      new_state = sm.transit(100, pm, "start", "end", self)
     self.assertEquals(new_state, None)
     self.assertEquals(self.called_back_uid, 100)
     self.assertEquals(self.called_back_pm, pm)
@@ -110,7 +110,7 @@ class TestStateMachine(unittest.TestCase):
     self.refuse_callback = FPLSourceFilePermissionDenied("TEST")
     new_state = None
     with self.assertRaises(FPLCannotTransitionState) as exc:
-      new_state = sm.transit(100, pm, "end", self)
+      new_state = sm.transit(100, pm, "start", "end", self)
     self.assertTrue(isinstance(exc.exception.exc, FPLSourceFilePermissionDenied))
     self.assertEquals(new_state, None)
     self.assertEquals(self.called_back_uid, 100)
@@ -125,7 +125,7 @@ class TestStateMachine(unittest.TestCase):
     self.refuse_callback = FPLPermissionDenied("TEST")
     new_state = None
     with self.assertRaises(FPLPermissionDenied):
-      new_state = sm.transit(100, pm, "end", self)
+      new_state = sm.transit(100, pm, "start", "end", self)
     self.assertEquals(new_state, None)
     self.assertEquals(self.called_back_uid, 100)
     self.assertEquals(self.called_back_pm, pm)
