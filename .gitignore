@@ -2,3 +2,9 @@
 *.pyc
 *.py~
 virtenv
+*~
+htmlcov
+py3env
+sqla0_7_10
+pypyenv
+.coverage
