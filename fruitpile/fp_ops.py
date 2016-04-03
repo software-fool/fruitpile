@@ -114,10 +114,10 @@ class Fruitpile(object):
     self.session.add(fs)
     try:
       self.session.commit()
+      return fs
     except IntegrityError:
       self.session.rollback()
       raise FPLFileSetExists("file set %s already exists in store" % (kwargs.get("name")))
-    return fs
 
   def list_filesets(self, **kwargs):
     self.perm_manager.check_permission(kwargs.get("uid"), Capability.LIST_FILESETS)
