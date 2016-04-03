@@ -145,7 +145,7 @@ class TestSchemaFileSet(unittest.TestCase):
     fss = self.session.query(FileSet).all()
     self.assertEquals(len(fss), 0)
     repo = Repo(name="default", path="/export/fruitpile/repo", repo_type="FileManager")
-    fs = FileSet(name="test-1", repo=repo)
+    fs = FileSet(name="test-1", version="3.1", revision="1234", repo=repo)
     self.session.add(fs)
     self.session.commit()
     fss = self.session.query(FileSet).all()
@@ -158,7 +158,7 @@ class TestSchemaFileSet(unittest.TestCase):
     repo = Repo(name="default", path="/export/fruitpile/repo", repo_type="FileManager")
     fss = []
     for i in range(0,10):
-      fs = FileSet(name="test-%d" % (i), repo=repo)
+      fs = FileSet(name="test-%d" % (i), version="%s" % (i), revision="%s" % (i), repo=repo)
       self.session.add(fs)
       fss.append(fs)
     self.session.commit()
@@ -179,13 +179,14 @@ class TestSchemaBinFile(unittest.TestCase):
     bfs = self.session.query(BinFile).all()
     self.assertEquals(len(bfs), 0)
     repo = Repo(name="default", path="/export/fruitpile/repo", repo_type="FileManager")
-    fs = FileSet(name="test-1", repo=repo)
+    fs = FileSet(name="test-1",
+                 version="4",
+                 revision="1234",
+                 repo=repo)
     st = State(name="unverified")
     bf = BinFile(fileset=fs,
                  name="xx-1.4.tar.gz",
                  path="build-1/xx-1.4.tar.gz",
-                 version="4",
-                 revision="1234",
                  primary=True,
                  state=st,
                  create_date=datetime(2016,3,24),
@@ -202,7 +203,10 @@ class TestSchemaBinFile(unittest.TestCase):
     bfs = self.session.query(BinFile).all()
     self.assertEquals(len(bfs), 0)
     repo = Repo(name="default", path="/export/fruitpile/repo", repo_type="FileManager")
-    fs = FileSet(name="test-1", repo=repo)
+    fs = FileSet(name="test-1",
+                 version="4",
+                 revision="1234",
+                 repo=repo)
     st = State(name="unverified")
     bfs = []
     targets = ["arm-cortex_m4","arm-cortex_a8","x86","x86_64","mip32","java","python"]
@@ -210,8 +214,6 @@ class TestSchemaBinFile(unittest.TestCase):
       bf = BinFile(fileset=fs,
                    name="xx-%s-1.4.tar.gz" % (n),
                    path="build-1/xx-%s-1.4.tar.gz" % (n),
-                   version="4",
-                   revision="1234",
                    primary=True,
                    state=st,
                    create_date=datetime(2016,2,12),

@@ -134,6 +134,10 @@ class FileSet(Base):
   binfiles = relationship("BinFile")
   repo_id = Column(Integer, ForeignKey('repos.id'), nullable=False)
   repo = relationship("Repo", back_populates="filesets")
+  # Version of the fileset - for example buildbot build number
+  version = Column(String, nullable=False)
+  # Revision of the fileset - i.e. the tip commit id, tag etc.
+  revision = Column(String, nullable=False)
 
   def __repr__(self):
     return "<FileSet(%s in %s)>" % (self.name, self.repo.name)
@@ -155,10 +159,6 @@ class BinFile(Base):
   name = Column(String, nullable=False)
   # The path to the file in the repository
   path = Column(String, nullable=False)
-  # Version of the file - for example buildbot build number
-  version = Column(String, nullable=False)
-  # Revision of the file - i.e. the tip commit id, tag etc.
-  revision = Column(String, nullable=False)
   # Whether the file is a primary file type or an auxilliary file
   primary = Column(Boolean, nullable=False)
   # The state of the file (references the state table to allow state flexibility)

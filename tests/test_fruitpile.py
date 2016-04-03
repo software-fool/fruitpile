@@ -183,22 +183,22 @@ class TestFruitpileAddFileSetOperations(unittest.TestCase):
     self.assertEquals(filesets, [])
 
   def test_add_new_fileset(self):
-    fileset = self.fp.add_new_fileset(name="test-1", uid=1046)
+    fileset = self.fp.add_new_fileset(name="test-1", version="3.1", revision="1234", uid=1046)
     self.assertEquals(str(fileset), "<FileSet(test-1 in default)>")
     filesets = self.fp.list_filesets(uid=1046)
     self.assertEquals(len(filesets), 1)
     self.assertEquals(filesets[0], fileset)
 
   def test_add_duplicate_fileset(self):
-    fs1 = self.fp.add_new_fileset(name="test-1", uid=1046)
+    fs1 = self.fp.add_new_fileset(name="test-1", version="3.1", revision="1234", uid=1046)
     self.assertEquals(str(fs1), "<FileSet(test-1 in default)>")
     with self.assertRaises(FPLFileSetExists):
-      fs2 = self.fp.add_new_fileset(name="test-1", uid=1046)
+      fs2 = self.fp.add_new_fileset(name="test-1", version="3.1", revision="1234", uid=1046)
 
   def test_add_multiple_filesets(self):
     fss1 = []
     for i in range(10):
-      fss1.append(self.fp.add_new_fileset(name="test-%d" % (i), uid=1046))
+      fss1.append(self.fp.add_new_fileset(name="test-%d" % (i), version="0.1", revision="%s" % (i), uid=1046))
     fss2 = self.fp.list_filesets(uid=1046)
     self.assertEquals(fss1, fss2)
 
@@ -221,7 +221,10 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
   def test_add_a_new_fileset_and_file(self):
     bfs = self.fp.list_files(uid=1046)
     self.assertEquals(bfs, [])
-    fs = self.fp.add_new_fileset(name="test-1", uid=1046)
+    fs = self.fp.add_new_fileset(name="test-1",
+                                 version="1",
+                                 revision="123",
+                                 uid=1046)
     filename = "%s/data/example_file.txt" % (mydir)
     bf = self.fp.add_file(
         uid=1046,
@@ -229,8 +232,6 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
         fileset_id=fs.id,
         name="requirements.txt",
         path="deploy",
-        version="1",
-        revision="123",
         primary=True,
         source="buildbot")
     bfs = self.fp.list_files(uid=1046)
@@ -242,7 +243,10 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
   def test_add_multiple_files_to_fileset(self):
     bfs0 = self.fp.list_files(uid=1046)
     self.assertEquals(bfs0, [])
-    fs = self.fp.add_new_fileset(name="test-1", uid=1046)
+    fs = self.fp.add_new_fileset(name="test-1",
+                                 version="1",
+                                 revision="123",
+                                 uid=1046)
     filename = "%s/data/example_file.txt" % (mydir)
     bfs1 = []
     for i in range(10):
@@ -253,8 +257,6 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
               fileset_id=fs.id,
               name="requirements-%d.txt" % (i),
               path="deploy",
-              version="1",
-              revision="123",
               primary=True,
               source="buildbot")
       )
@@ -265,7 +267,10 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
   def test_add_multiple_files_to_fileset_with_auxilliaries(self):
     bfs0 = self.fp.list_files(uid=1046)
     self.assertEquals(bfs0, [])
-    fs = self.fp.add_new_fileset(name="test-1", uid=1046)
+    fs = self.fp.add_new_fileset(name="test-1",
+                                 version="1",
+                                 revision="123",
+                                 uid=1046)
     filename = "%s/data/example_file.txt" % (mydir)
     bfs1 = []
     for i in range(10):
@@ -276,8 +281,6 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
               fileset_id=fs.id,
               name="requirements-%d.txt" % (i),
               path="deploy",
-              version="1",
-              revision="123",
               primary=True if i == 0 else False,
               source="buildbot")
       )
@@ -297,7 +300,10 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
     self.assertEquals(bfs0, [])
     fss = []
     for i in range(3):
-      fss.append(self.fp.add_new_fileset(name="test-%d" % (i), uid=1046))
+      fss.append(self.fp.add_new_fileset(name="test-%d" % (i),
+                                         version="%s" % (i),
+                                         revision="%s" % (123+i),
+                                         uid=1046))
     bfs2 = []
     filename = "%s/data/example_file.txt" % (mydir)
     for j in range(12):
@@ -307,8 +313,6 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
           fileset_id = fss[j % 3].id,
           name="requirements-%d.txt" % (j),
           path="deploy",
-          version="%d" % (j),
-          revision="123",
           primary=True,
           source="buildbot")
               )
@@ -319,8 +323,14 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
   def test_add_same_file_and_path_twice_to_same_file_set(self):
     bfs0 = self.fp.list_files(uid=1046)
     self.assertEquals(bfs0, [])
-    fs = self.fp.add_new_fileset(name="test-1", uid=1046)
-    fs2 = self.fp.add_new_fileset(name="test-2", uid=1046)
+    fs = self.fp.add_new_fileset(name="test-1",
+                                 version="1",
+                                 revision="123",
+                                 uid=1046)
+    fs2 = self.fp.add_new_fileset(name="test-2",
+                                  version="2",
+                                  revision="124",
+                                  uid=1046)
     filename = "%s/data/example_file.txt" % (mydir)
     bf1 = self.fp.add_file(
         uid=1046,
@@ -328,8 +338,6 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
         fileset_id = fs.id,
         name="requirements.txt",
         path="deploy",
-        version="1",
-        revision="123",
         primary=True,
         source="buildbot")
     with self.assertRaises(FPLBinFileExists):
@@ -339,8 +347,6 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
           fileset_id = fs2.id,
           name="requirements.txt",
           path="deploy",
-          version="1",
-          revision="123",
           primary=True,
           source="buildbot")
     bfs1 = self.fp.list_files(uid=1046)
@@ -350,7 +356,10 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
   def test_add_same_name_to_same_file_set(self):
     bfs0 = self.fp.list_files(uid=1046)
     self.assertEquals(bfs0, [])
-    fs = self.fp.add_new_fileset(name="test-1", uid=1046)
+    fs = self.fp.add_new_fileset(name="test-1",
+                                 version="1",
+                                 revision="123",
+                                 uid=1046)
     filename = "%s/data/example_file.txt" % (mydir)
     bf1 = self.fp.add_file(
         uid=1046,
@@ -358,8 +367,6 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
         fileset_id = fs.id,
         name="requirements.txt",
         path="deploy",
-        version="1",
-        revision="123",
         primary=True,
         source="buildbot")
     with self.assertRaises(FPLBinFileExists):
@@ -369,8 +376,6 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
           fileset_id = fs.id,
           name ="requirements.txt",
           path="deploy1",
-          version="1",
-          revision="123",
           primary=True,
           source="buildbot")
     bfs1 = self.fp.list_files(uid=1046)
@@ -378,7 +383,10 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
     self.assertEquals(bfs1[0], bf1)
 
   def test_add_missing_source_file(self):
-    fs = self.fp.add_new_fileset(name="test-1", uid=1046)
+    fs = self.fp.add_new_fileset(name="test-1",
+                                 version="1",
+                                 revision="123",
+                                 uid=1046)
     filename = "%s/data/example_file-1.txt" % (mydir)
     with self.assertRaises(FPLSourceFileNotFound):
       bf = self.fp.add_file(
@@ -387,13 +395,14 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
           fileset_id = fs.id,
           name="requirements.txt",
           path="deploy",
-          version="1",
-          revision="123",
           primary=True,
           source="buildbot")
 
   def test_add_unreadable_file(self):
-    fs = self.fp.add_new_fileset(name="test-1", uid=1046)
+    fs = self.fp.add_new_fileset(name="test-1",
+                                 version="1",
+                                 revision="123",
+                                 uid=1046)
     unreadable_file = "/tmp/_unreadable_%d" % (os.getpid())
     fob = io.open(unreadable_file, "wb")
     fob.close()
@@ -405,8 +414,6 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
           fileset_id = fs.id,
           name="requirements.txt",
           path="deploy",
-          version="1",
-          revision="123",
           primary=True,
           source="buildbot")
     os.chmod(unreadable_file, 0o644)
@@ -424,7 +431,10 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
     perm3 = UserPermission(user_id=1047, perm_id=Capability.LIST_FILES)
     session.add_all([user,perm1,perm2,perm3])
     session.commit()
-    fs = self.fp.add_new_fileset(name="test-1", uid=1047)
+    fs = self.fp.add_new_fileset(name="test-1",
+                                 version="1",
+                                 revision="123",
+                                 uid=1047)
     filename = "%s/data/example_file.txt" % (mydir)
     with self.assertRaises(FPLPermissionDenied):
       bf = self.fp.add_file(
@@ -433,8 +443,6 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
         fileset_id = fs.id,
         name="requirements.txt",
         path="deploy",
-        version="1",
-        revision="123",
         primary=True,
         source="buildbot")
 
@@ -526,7 +534,10 @@ class TestFruitpileStateTransitOperations(unittest.TestCase):
     fp.init(uid=1046, username="db")
     fp.open()
     self.fp = fp
-    fs = self.fp.add_new_fileset(name="test-1", uid=1046)
+    fs = self.fp.add_new_fileset(name="test-1",
+                                 version="1",
+                                 revision="123",
+                                 uid=1046)
     filename = "%s/data/example_file.txt" % (mydir)
     bf = self.fp.add_file(
         uid=1046,
@@ -534,8 +545,6 @@ class TestFruitpileStateTransitOperations(unittest.TestCase):
         fileset_id=fs.id,
         name="requirements.txt",
         path="deploy",
-        version="1",
-        revision="123",
         primary=True,
         source="buildbot")
     self.bf = bf
@@ -589,8 +598,6 @@ class TestFruitpileStateTransitOperations(unittest.TestCase):
         fileset_id=self.fs.id,
         name="coverage-report.txt",
         path="deploy",
-        version="1",
-        revision="123",
         primary=False,
         source="buildbot")
     with self.assertRaises(FPLInvalidTargetForStateChange):
@@ -606,7 +613,10 @@ class TestFruitpileGetFileFromRepo(unittest.TestCase):
     fp.init(uid=1046, username="db")
     fp.open()
     self.fp = fp
-    fs = self.fp.add_new_fileset(name="test-1", uid=1046)
+    fs = self.fp.add_new_fileset(name="test-1",
+                                 version="1",
+                                 revision="123",
+                                 uid=1046)
     filename = "%s/data/example_file.txt" % (mydir)
     self.bf = self.fp.add_file(
         uid=1046,
@@ -614,8 +624,6 @@ class TestFruitpileGetFileFromRepo(unittest.TestCase):
         fileset_id=fs.id,
         name="requirements.txt",
         path="deploy",
-        version="1",
-        revision="123",
         primary=True,
         source="buildbot")
     self.aux = self.fp.add_file(
@@ -624,8 +632,6 @@ class TestFruitpileGetFileFromRepo(unittest.TestCase):
         fileset_id=fs.id,
         name="coverage-report.txt",
         path="deploy",
-        version="1",
-        revision="123",
         primary=False,
         source="buildbot")
     self.filename = filename

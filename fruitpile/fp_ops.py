@@ -110,7 +110,7 @@ class Fruitpile(object):
 
   def add_new_fileset(self, **kwargs):
     self.perm_manager.check_permission(kwargs.get("uid"), Capability.ADD_FILESET)
-    fs = FileSet(name=kwargs.get("name"), repo=self.repo_data)
+    fs = FileSet(name=kwargs.get("name"), version=kwargs.get("version"), revision=kwargs.get("revision"), repo=self.repo_data)
     self.session.add(fs)
     try:
       self.session.commit()
@@ -139,8 +139,6 @@ class Fruitpile(object):
     bf = BinFile(fileset_id=kwargs.get("fileset_id"),
                  name=name,
                  path=path,
-                 version=kwargs.get("version"),
-                 revision=kwargs.get("revision"),
                  primary=kwargs.get("primary"),
                  state_id=self.state_map["untested"],
                  create_date=jot,
