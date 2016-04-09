@@ -101,7 +101,6 @@ def fp_transit_file(ns, outfob=sys.stdout, errfob=sys.stderr):
   except FPLBinFileNotExists as e:
     print("file id {0} cannot be found".format(ns.id), file=errfob)
   except FPLInvalidTargetForStateChange as e:
-    print(e)
     print("attempted to change state on an auxilliary file", file=errfob)
   except FPLInvalidStateTransition as e:
     print("the transition to state '{0}' for file id {1} is not permitted".format(ns.state, ns.id), file=errfob)

@@ -341,9 +341,11 @@ class TestFPToolTransitOperations(unittest.TestCase):
   def test_transit_auxilliary_file(self):
     ns = Namespace(path=self.path, id=2, state="testing")
     fob = StringIO()
-    fp_transit_file(ns, errfob=fob)
+    outfob = StringIO()
+    fp_transit_file(ns, errfob=fob, outfob=outfob)
     txt = fob.getvalue()
     self.assertEquals(txt, "attempted to change state on an auxilliary file\n")
+    self.assertEquals(outfob.getvalue(), "")
 
   def test_transit_incorrect_state(self):
     ns = Namespace(path=self.path, id=1, state="released")
@@ -509,7 +511,6 @@ class TestFPToolGetFileOperations(unittest.TestCase):
 
   def test_try_to_write_to_not_permitted_location(self):
     new_path = "/root/cannot_write_here"
-    print(new_path)
     ns = Namespace(path=self.path, id=1, to_file=new_path)
     outfob = StringIO()
     errfob = StringIO()
