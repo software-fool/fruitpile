@@ -41,9 +41,7 @@ class TestFPToolInit(unittest.TestCase):
   def tearDown(self):
     clear_tree(self.path)
 
-  def test_init_a_repo(self):
-    ns = Namespace(path=self.path)
-    fp_init_repo(ns)
+  def _check_repo(self):
     self.assertTrue(os.path.exists(self.path))
     conn = sqlite3.connect(os.path.join(self.path,"fpl.db"))
     curs = conn.execute("SELECT * FROM SQLITE_MASTER")
@@ -53,6 +51,16 @@ class TestFPToolInit(unittest.TestCase):
     rows = curs.fetchall()
     self.assertEquals(len(rows), 1)
     self.assertEquals(rows[0][1], "default")
+
+  def test_init_a_repo(self):
+    ns = Namespace(path=self.path)
+    fp_init_repo(ns)
+    self._check_repo()
+
+  def test_init_a_repo_from_cli(self):
+    fp_tool_main([self.path,"init"])
+    self._check_repo()
+
 
 class TestFPToolFileSetOps(unittest.TestCase):
 
@@ -74,6 +82,14 @@ class TestFPToolFileSetOps(unittest.TestCase):
   def test_list_filesets(self):
     ns = Namespace(path=self.path)
     self.check_output(ns, [])
+
+  def test_list_filesets_from_cli(self):
+    fob = StringIO()
+    oldout, olderr = sys.stdout, sys.stderr
+    sys.stdout, sys.stderr = fob, fob
+    fp_tool_main([self.path,"lsfs"])
+    sys.stdout, sys.stderr = oldout, olderr
+    self.assertEquals(fob.getvalue(), "")
 
   def test_add_fileset(self):
     ns = Namespace(path=self.path, version="3.1", revision="1234", name="test-1")
@@ -517,6 +533,9 @@ class TestFPToolGetFileOperations(unittest.TestCase):
     fp_get_file(ns, outfob=outfob, errfob=errfob)
     self.assertEquals(outfob.getvalue(), "")
     self.assertEquals(errfob.getvalue(), "the target file '{}' cannot be written to\n".format(new_path))
+
+
+
 
 if __name__ == "__main__":
   unittest.main()
