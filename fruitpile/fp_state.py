@@ -18,15 +18,9 @@ from .db.schema import *
 from .fp_constants import Capability
 from .fp_exc import FPLCannotTransitionState, FPLInvalidStateTransition, FPLUnknownState, FPLPermissionDenied
 from collections import namedtuple
-import fp_trans
-import inspect
+from .fp_trans import TRANS_FN
 
 StateTransition = namedtuple("StateTransition", ["new_state","capability","transfn","data"])
-
-TRANS_FN = {}
-for name, fn in inspect.getmembers(fp_trans, inspect.isfunction):
-  if name[:6] == "check_":
-    TRANS_FN[name] = fn
 
 class StateMachine(object):
   def __init__(self):

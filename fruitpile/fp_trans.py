@@ -33,6 +33,4 @@ def check_auxilliary_file_in_fileset(uid, perm_man, old_state, new_state, d):
     raise FPLCannotTransitionState("Transition disallowed by check auxilliary file in fileset")
   return
 
-
-  
-  
+TRANS_FN = {"check_auxilliary_file_in_fileset": check_auxilliary_file_in_fileset}
