@@ -223,7 +223,7 @@ def upgrade(engine, uid, username, path):
     state_dict[s.name] = s
   for transition in [("untested","testing",None,Capability.BEGIN_TESTING),
                      ("untested","withdrawn",None,Capability.WITHDRAW_ARTIFACT),
-                     ("testing","tested",None,Capability.ARTIFACT_TESTED),
+                     ("testing","tested","check_auxilliary_file_in_fileset",Capability.ARTIFACT_TESTED),
                      ("testing","withdrawn",None,Capability.WITHDRAW_ARTIFACT),
                      ("tested","approved",None,Capability.APPROVE_ARTIFACT),
                      ("tested","withdrawn",None,Capability.WITHDRAW_ARTIFACT),
@@ -231,10 +231,16 @@ def upgrade(engine, uid, username, path):
                      ("approved","withdrawn",None,Capability.WITHDRAW_ARTIFACT)]:
     start_id = state_dict[transition[0]].id
     end_id= state_dict[transition[1]].id
-    session.add(Transition(start_id=start_id,
-                           end_id=end_id,
-                           transfn_id=transition[2],
-                           perm_id=transition[3]))
+    t = Transition(start_id=start_id,
+                   end_id=end_id,
+                   transfn_id=None if transition[2] is None else transfn_map[transition[2]]["obj"].id,
+                   perm_id=transition[3])
+    session.add(t)
+    session.commit()
+    if transition[2] is not None:
+      for data_item in transfn_map[transition[2]]["data"]:
+        session.add(TransitionFunctionData(trans_id=t.id, data=data_item))
+      session.commit()
   mig = Migration(id=1, script=__name__)
   session.add(mig)
   session.commit()

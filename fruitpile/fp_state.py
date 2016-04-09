@@ -18,8 +18,15 @@ from .db.schema import *
 from .fp_constants import Capability
 from .fp_exc import FPLCannotTransitionState, FPLInvalidStateTransition, FPLUnknownState, FPLPermissionDenied
 from collections import namedtuple
+import fp_trans
+import inspect
 
-StateTransition = namedtuple("StateTransition", ["new_state","capability","transfn"])
+StateTransition = namedtuple("StateTransition", ["new_state","capability","transfn","data"])
+
+TRANS_FN = {}
+for name, fn in inspect.getmembers(fp_trans, inspect.isfunction):
+  if name[:6] == "check_":
+    TRANS_FN[name] = fn
 
 class StateMachine(object):
   def __init__(self):
@@ -38,7 +45,7 @@ class StateMachine(object):
   def is_valid_state(self, state):
     return state in self._state_dict
 
-  def transit(self, uid, perm_man, old_state, new_state, obj):
+  def transit(self, uid, perm_man, old_state, new_state, external_data):
     try:
       valid_trans = self._transitions[old_state]
     except KeyError:
@@ -49,7 +56,10 @@ class StateMachine(object):
       raise FPLInvalidStateTransition("Invalid state transition from %s to %s" % (self._state, new_state))
     perm_man.check_permission(uid, trans_control.capability)
     try:
-      trans_control.transfn(uid, perm_man, old_state, new_state, obj)
+      if trans_control.transfn is not None:
+        d = {"data":trans_control.data}
+        d.update(external_data)
+        trans_control.transfn(uid, perm_man, old_state, new_state, d)
     except Exception as exc:
       if isinstance(exc, FPLPermissionDenied):
         raise exc
@@ -71,12 +81,15 @@ class StateMachine(object):
     for t in transitions:
       # For each transition add the state transition to the
       # transition map for this start state
-      trnsfn = lambda a,b,c,d,e: None if not t.transfn_id else t.transfn.transfn
-
+      if t.transfn_id is not None:
+        trnsfn = TRANS_FN[t.transfn.transfn]
+      else:
+        trnsfn = lambda a,b,c,d,e: None
       sm._transitions[t.start.name][t.end.name] = \
                 StateTransition(new_state=t.end.name,
                                 capability=t.perm_id,
-                                transfn=trnsfn)
+                                transfn=trnsfn,
+                                data=t.transfuncdata)
       try:
         del start_states[start_states.index(t.end.name)]
       except ValueError:

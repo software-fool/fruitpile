@@ -173,7 +173,7 @@ class Fruitpile(object):
     bf = bf[0]
     if not bf.primary:
       raise FPLInvalidTargetForStateChange("binfile with id=%d is an auxilliary file" % (file_id))
-    new_state = self.sm.transit(uid, self.perm_manager, bf.state.name, req_state, self)
+    new_state = self.sm.transit(uid, self.perm_manager, bf.state.name, req_state, {"bf":bf,"obj":self})
     bf.state_id = self.sm.state_id
     bf.update_date = datetime.now()
     self.session.commit()

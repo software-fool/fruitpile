@@ -310,6 +310,16 @@ class TestFPToolTransitOperations(unittest.TestCase):
     fob = StringIO()
     fp_add_file(ns, outfob=fob)
     self.assertEquals(fob.getvalue(), "")
+    ns = Namespace(path=self.path,
+                   fileset="build-1",
+                   name="test_report",
+                   repopath="builds",
+                   auxilliary=True,
+                   origin="buildbot",
+                   source_file="requirements.txt")
+    fob = StringIO()
+    fp_add_file(ns, outfob=fob)
+    self.assertEquals(fob.getvalue(), "")
 
   def tearDown(self):
     clear_tree(self.path)
@@ -325,7 +335,8 @@ class TestFPToolTransitOperations(unittest.TestCase):
     txt = fob.getvalue()
     words = txt.split()
     self.assertEquals(words, ["1","1","testing","P","builds/requirements.txt",
-                              "1","2","untested","A","builds/requirements-2.txt"])
+                              "1","2","untested","A","builds/requirements-2.txt",
+                              "1","3","untested","A","builds/test_report"])
 
   def test_transit_auxilliary_file(self):
     ns = Namespace(path=self.path, id=2, state="testing")
@@ -349,11 +360,11 @@ class TestFPToolTransitOperations(unittest.TestCase):
     self.assertEquals(txt, "requested state 'jelly' is not recognised\n")
 
   def test_transit_unknown_file(self):
-    ns = Namespace(path=self.path, id=3, state="testing")
+    ns = Namespace(path=self.path, id=5, state="testing")
     fob = StringIO()
     fp_transit_file(ns, errfob=fob)
     txt = fob.getvalue()
-    self.assertEquals(txt, "file id 3 cannot be found\n")
+    self.assertEquals(txt, "file id 5 cannot be found\n")
 
   def test_transit_file_through_all_states(self):
     for state in ["testing","tested","approved","released"]:
@@ -367,7 +378,8 @@ class TestFPToolTransitOperations(unittest.TestCase):
       txt = fob.getvalue()
       words = txt.split()
       self.assertEquals(words, ["1","1",state,"P","builds/requirements.txt",
-                                "1","2","untested","A","builds/requirements-2.txt"])
+                                "1","2","untested","A","builds/requirements-2.txt",
+                              "1","3","untested","A","builds/test_report"])
 
   def _withdraw(self):
     ns = Namespace(path=self.path, id=1, state="withdrawn")
@@ -384,7 +396,8 @@ class TestFPToolTransitOperations(unittest.TestCase):
     txt = fob.getvalue()
     words = txt.split()
     self.assertEquals(words, ["1","1","withdrawn","P","builds/requirements.txt",
-                              "1","2","untested","A","builds/requirements-2.txt"])
+                              "1","2","untested","A","builds/requirements-2.txt",
+                              "1","3","untested","A","builds/test_report"])
 
   def test_transit_file_untested_to_withdrawn(self):
     self._check_withdrawn()
