@@ -1,0 +1,271 @@
+---
+swagger: "2.0"
+info:
+  description: "#### Fruitpile REST API\nThe Fruitpile tool allows interaction through\
+    \ a REST API (and is really the normal expected usage mechanism) \n"
+  version: "1.0.0"
+  title: "Fruitpile"
+  license:
+    name: "GPL v3"
+    url: "http://www.gnu.org/licenses/gpl-3.0.html"
+host: "192.168.1.6"
+basePath: "/v1"
+schemes:
+- "http"
+paths:
+  /files/search:
+    get:
+      tags:
+      - "default_controller"
+      summary: "Get a list of using a search"
+      description: "List files across multiple filesets which meet some conditions"
+      operationId: "controllers.default_controller.files_search_get"
+      parameters:
+      - name: "namePattern"
+        in: "query"
+        description: "A pattern to search for names of Files with"
+        required: false
+        type: "string"
+      - name: "size"
+        in: "query"
+        required: true
+        type: "integer"
+        format: "int32"
+      - name: "startAt"
+        in: "query"
+        description: "Begin the list at this offset"
+        required: false
+        type: "integer"
+        format: "int32"
+      responses:
+        200:
+          description: "OK"
+          schema:
+            type: "array"
+            title: "ArrayOfFiles"
+            items:
+              $ref: "#/definitions/File"
+  /files/{fileId}:
+    get:
+      tags:
+      - "default_controller"
+      summary: "Retrieve a copy of the given file"
+      description: "Get the contents of file with the id fileId"
+      operationId: "controllers.default_controller.files_file_id_get"
+      parameters:
+      - name: "fileId"
+        in: "path"
+        description: "ID of the file to get"
+        required: true
+        type: "integer"
+        format: "int32"
+      responses:
+        200:
+          description: "successful operation"
+        404:
+          description: "Invalid ID supplied"
+  /files/{fileId}/details:
+    get:
+      tags:
+      - "default_controller"
+      summary: "Get the details of a given file"
+      description: "Provide the details of a given file"
+      operationId: "controllers.default_controller.files_file_id_details_get"
+      parameters:
+      - name: "fileId"
+        in: "path"
+        description: "ID of the file to find"
+        required: true
+        type: "integer"
+        format: "int32"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/File"
+        404:
+          description: "Invalid ID supplied"
+    put:
+      tags:
+      - "default_controller"
+      summary: "Update the state of the file"
+      description: "Change the state of a given file"
+      operationId: "controllers.default_controller.files_file_id_details_put"
+      parameters:
+      - name: "fileId"
+        in: "path"
+        description: "ID of the file to update"
+        required: true
+        type: "integer"
+        format: "int32"
+      - name: "state"
+        in: "formData"
+        description: "Desired new state of the file"
+        required: true
+        type: "string"
+      responses:
+        200:
+          description: "state changed"
+        403:
+          description: "The state change was not possible"
+          schema:
+            type: "string"
+  /filesets:
+    get:
+      tags:
+      - "default_controller"
+      description: "Gets a list of the `FileSet` objects.\nOptional query param of\
+        \ **size** determines\nsize of the returned array\n"
+      operationId: "controllers.default_controller.filesets_get"
+      parameters:
+      - name: "size"
+        in: "query"
+        description: "Size of the array"
+        required: true
+        type: "number"
+        format: "int32"
+      responses:
+        200:
+          description: "Successful response"
+          schema:
+            type: "array"
+            title: "ArrayOfFileSets"
+            items:
+              $ref: "#/definitions/FileSet"
+    post:
+      tags:
+      - "default_controller"
+      description: "Adds a new `FileSet` object. Data must be supplied\n"
+      operationId: "controllers.default_controller.filesets_post"
+      parameters:
+      - in: "body"
+        name: "body"
+        required: true
+        schema:
+          $ref: "#/definitions/FileSet"
+      responses:
+        200:
+          description: "FileSet object created"
+          schema:
+            $ref: "#/definitions/FileSet"
+        409:
+          description: "FileSet object with this name already exists"
+  /filesets/search:
+    get:
+      tags:
+      - "default_controller"
+      summary: "Search for a FileSet that match a given quantity"
+      operationId: "controllers.default_controller.filesets_search_get"
+      parameters:
+      - name: "namePattern"
+        in: "query"
+        description: "A pattern to search for names with"
+        required: false
+        type: "string"
+      - name: "size"
+        in: "query"
+        description: "The number of results to return"
+        required: true
+        type: "integer"
+        format: "int32"
+      - name: "startAt"
+        in: "query"
+        description: "Begin the list at this offset"
+        required: false
+        type: "integer"
+        format: "int32"
+      responses:
+        200:
+          description: "successful response"
+          schema:
+            type: "array"
+            title: "ArrayOfFiles"
+            items:
+              $ref: "#/definitions/File"
+  /filesets/{fileSetId}:
+    get:
+      tags:
+      - "default_controller"
+      summary: "Get the details of a given fileset"
+      operationId: "controllers.default_controller.filesets_file_set_id_get"
+      parameters:
+      - name: "fileSetId"
+        in: "path"
+        description: "ID of the fileset to obtain information on"
+        required: true
+        type: "integer"
+        format: "int32"
+      responses:
+        200:
+          description: "successful operation"
+          schema:
+            $ref: "#/definitions/FileSet"
+        404:
+          description: "fileSetId not found"
+  /filesets/{fileSetId}/files:
+    get:
+      tags:
+      - "default_controller"
+      summary: "Get a list of the files in a given fileset"
+      operationId: "controllers.default_controller.filesets_file_set_id_files_get"
+      parameters:
+      - name: "fileSetId"
+        in: "path"
+        description: "ID of the fileset to obtain information on"
+        required: true
+        type: "integer"
+        format: "int32"
+      - name: "size"
+        in: "query"
+        required: false
+        type: "integer"
+        format: "int32"
+      responses:
+        200:
+          description: "successful response"
+          schema:
+            type: "array"
+            title: "ArrayOfFiles"
+            items:
+              $ref: "#/definitions/File"
+        404:
+          description: "fileSetId not found"
+definitions:
+  FileSet:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int32"
+      name:
+        type: "string"
+      version:
+        type: "string"
+      revision:
+        type: "string"
+  File:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+      name:
+        type: "string"
+      path:
+        type: "string"
+      primary:
+        type: "boolean"
+      state:
+        type: "string"
+      createDate:
+        type: "string"
+        format: "date-time"
+      updateDate:
+        type: "string"
+        format: "date-time"
+      source:
+        type: "string"
+      checksum:
+        type: "string"
+      ztype:
+        type: "string"
