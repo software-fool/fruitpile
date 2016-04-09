@@ -69,6 +69,7 @@ class TestFruitpileInitOperations(unittest.TestCase):
       "states",
       "transfuncs",
       "transitions",
+      "transfuncdata",
       "user_perms",
       "users"
     ]
@@ -668,6 +669,47 @@ class TestFruitpileGetFileFromRepo(unittest.TestCase):
     self.fp.get_file(uid=1046, file_id=self.bf.id, to_file=to_file)
     with self.assertRaises(FPLFileExists):
       self.fp.get_file(uid=1046, file_id=self.aux.id, to_file=to_file)
+
+class TestTransitionWithTransitionFunction(unittest.TestCase):
+
+  def setUp(self):
+    self.store_path = "/tmp/store%d" % (os.getpid())
+    clear_tree(self.store_path)
+    fp = Fruitpile(self.store_path)
+    fp.init(uid=1046, username="db")
+    fp.open()
+    self.fp = fp
+    fs = self.fp.add_new_fileset(name="test-1",
+                                 version="1",
+                                 revision="123",
+                                 uid=1046)
+    filename = "%s/data/example_file.txt" % (mydir)
+    self.bf = self.fp.add_file(
+        uid=1046,
+        source_file=filename,
+        fileset_id=fs.id,
+        name="requirements.txt",
+        path="deploy",
+        primary=True,
+        source="buildbot")
+    self.aux = self.fp.add_file(
+        uid=1046,
+        source_file=filename,
+        fileset_id=fs.id,
+        name="coverage-report.txt",
+        path="deploy",
+        primary=False,
+        source="buildbot")
+
+  def tearDown(self):
+    self.fp.close()
+    self.fp = None
+    clear_tree(self.store_path)
+
+  def test_check_file_with_file_name_exists(self):
+    sm = StateMachine.create_state_machine(self.fp.session)
+    new_state = sm.transit
+
 
 if __name__ == "__main__":
   unittest.main()

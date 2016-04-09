@@ -54,14 +54,16 @@ class TransitionFunction(Base):
 
   def __repr__(self):
     return "<TransitionFunction(%s)>" % (self.transfn)
+
   
 class Transition(Base):
   __tablename__ = 'transitions'
   __table_args__ = (
-    PrimaryKeyConstraint('start_id','end_id'),
+    UniqueConstraint('start_id','end_id'),
     CheckConstraint('start_id != end_id')
   )
 
+  id = Column(Integer, primary_key=True, nullable=False)
   start_id = Column(Integer, ForeignKey('states.id'), nullable=False)
   end_id = Column(Integer, ForeignKey('states.id'), nullable=False)
   start = relationship('State', primaryjoin="State.id==Transition.start_id", foreign_keys=[start_id])
@@ -70,13 +72,26 @@ class Transition(Base):
   transfn = relationship('TransitionFunction', back_populates='transitions')
   perm_id = Column(Integer, ForeignKey('permissions.id'), nullable=False)
   perm = relationship('Permission', back_populates='transitions')
+  transfuncdata = relationship('TransitionFunctionData')
 
   def __repr__(self):
     if self.transfn and self.transfn != "":
-      transfn_str = "with transfn=%s" % (self.transfn)
+      transfn_str = " with transfn=%s(%s)" % (self.transfn, self.transfuncdata)
     else:
       transfn_str = ""
-    return "<Transition(%s=>%s%s>" % (self.start.name,self.end.name, transfn_str)
+    return "<Transition(%s=>%s%s)>" % (self.start.name,self.end.name, transfn_str)
+
+class TransitionFunctionData(Base):
+  __tablename__ = 'transfuncdata'
+
+  id = Column(Integer, primary_key=True, nullable=False)
+  trans_id = Column(Integer, ForeignKey('transitions.id'), nullable=False)
+  data = Column(String(120), nullable=False)
+  transfns = relationship('Transition', back_populates='transfuncdata')
+
+  def __repr__(self):
+    return "<TransitionFunctionData(fn_id=%d,data=%s)>" % (self.trans_id, self.data)
+
 
 class Permission(Base):
   __tablename__ = 'permissions'
@@ -197,6 +212,12 @@ def upgrade(engine, uid, username, path):
   for sname in ["untested","testing","tested","approved","released","withdrawn"]:
     state = State(name=sname)
     session.add(state)
+  transfn_map = {"check_auxilliary_file_in_fileset": 
+                 {"data": ["name=test_report"]}}
+  for transfnname in transfn_map:
+    transfn = TransitionFunction(transfn=transfnname)
+    session.add(transfn)
+    transfn_map[transfnname]["obj"] = transfn
   session.commit()
   for s in session.query(State).all():
     state_dict[s.name] = s

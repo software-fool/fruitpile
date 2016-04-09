@@ -111,10 +111,32 @@ class TestSchemaState(unittest.TestCase):
     ts = self.session.query(Transition).all()
     self.assertEquals(len(ts), 1)
     ts0 = ts[0]
+    self.assertEquals(str(ts0), "<Transition(begin=>end with transfn=<TransitionFunction(ensure_reviewed)>([]))>")
     self.assertEquals(ts0.start_id, st1.id)
     self.assertEquals(ts0.end_id, st2.id)
     self.assertEquals(ts0.perm_id, perm.id)
     self.assertEquals(ts0.transfn_id, transfn.id)
+
+  def test_create_state_transition_with_transition_function_and_data(self):
+    st1 = State(name="begin")
+    st2 = State(name="end")
+    transfn = TransitionFunction(transfn="transition_function")
+    perm = Permission(name="A_PERMISSION", desc="A permission for testing")
+    self.session.add_all([st1,st2,transfn,perm])
+    self.session.commit()
+    trns1 = Transition(start_id=st1.id, end_id=st2.id, perm=perm, transfn_id=transfn.id)
+    self.session.add(trns1)
+    self.session.commit()
+    trns_data = TransitionFunctionData(trans_id=trns1.id, data="THIS IS SOME DATA")
+    self.session.add(trns_data)
+    self.session.commit()
+    transitions = self.session.query(Transition).all()
+    self.assertEquals(len(transitions), 1)
+    t0 = transitions[0]
+    self.assertEquals(str(t0), "<Transition(begin=>end with transfn=<TransitionFunction(transition_function)>([<TransitionFunctionData(fn_id=1,data=THIS IS SOME DATA)>]))>")
+    tdata = self.session.query(TransitionFunctionData).filter(TransitionFunctionData.trans_id==t0.id).all()
+    self.assertEquals(len(tdata), 1)
+    self.assertEquals(tdata[0].data, "THIS IS SOME DATA")
 
 
 class TestSchemaRepo(unittest.TestCase):
