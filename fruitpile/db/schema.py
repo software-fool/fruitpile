@@ -113,7 +113,7 @@ class User(Base):
   name = Column(String(20), unique=True, nullable=False)
 
   def __repr__(self):
-    return "<User(%s=%d)>" % (self.name, self.id)
+    return "<User(%s=%d)>" % (self.name, self.uid)
 
 class UserPermission(Base):
   __tablename__ = 'user_perms'

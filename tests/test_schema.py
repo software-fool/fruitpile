@@ -222,6 +222,7 @@ class TestSchemaBinFile(unittest.TestCase):
     bfs = self.session.query(BinFile).all()
     self.assertEquals(len(bfs), 1)
     self.assertEquals(bfs[0], bf)
+    self.assertEquals(str(bf), "<BinFile(name='xx-1.4.tar.gz', path='build-1/xx-1.4.tar.gz')>")
 
   def test_create_multiple_bin_files(self):
     bfs = self.session.query(BinFile).all()
@@ -321,6 +322,8 @@ class TestSchemaUsers(unittest.TestCase):
     self.assertEquals(perms_for_1046.user.name, "db")
     self.assertEquals(perms_for_1046.perm_id, perm.id)
     self.assertEquals(perms_for_1046.perm.name, "GOD")
+    self.assertEquals(str(user), "<User(db=1046)>")
+    self.assertEquals(str(user_perms), "<UserPermission(uid=1046,permid=1)>")
 
   def test_create_user_with_permissions_subset(self):
     perm_names = [("ADD_FILESET","Grant permission to add a fileset"),
@@ -345,7 +348,46 @@ class TestSchemaUsers(unittest.TestCase):
     self.assertEquals(user0.user_perms[1].perm ,ps[3])
     self.assertNotIn(ps[0], user0.user_perms)
     self.assertNotIn(ps[1], user0.user_perms)
-    
+
+class TestMigrations(unittest.TestCase):
+
+  def setUp(self):
+    self.engine, self.session = setUpDatabase()
+
+  def tearDown(self):
+    self.session.close()
+
+  def test_create_migration(self):
+    mig = Migration(script="base_01")
+    self.session.add(mig)
+    self.session.commit()
+    self.assertEquals(mig.script, "base_01")
+    self.assertEquals(str(mig), "<Migration(id=1, script=base_01)>")
+
+  def test_retrieve_migration(self):
+    mig = Migration(script="base_level")
+    self.session.add(mig)
+    self.session.commit()
+    self.assertEquals(mig.id, 1)
+    records = self.session.query(Migration).all()
+    self.assertEquals(len(records), 1)
+    self.assertEquals(records[0], mig)
+
+class TestPermission(unittest.TestCase):
+
+  def setUp(self):
+    self.engine, self.session = setUpDatabase()
+
+  def tearDown(self):
+    self.session.close()
+
+  def test_permission(self):
+    perm = Permission(name="OMNIPOTENCE", desc="An all powerful permission")
+    self.session.add(perm)
+    self.session.commit()
+    self.assertEquals(perm.id, 1)
+    self.assertEquals(str(perm), "<Permission(OMNIPOTENCE=1)>")
+
 
 if __name__ == "__main__":
   unittest.main()
