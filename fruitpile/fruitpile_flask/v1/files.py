@@ -24,6 +24,7 @@ class FruitpileFiles(FruitpileResource):
   def __init__(self, **kwargs):
     self.fp = Fruitpile(kwargs["fppath"])
     self.fp.open()
+    super(FruitpileFiles,self).__init__()
 
   def get(self):
     parser = reqparse.RequestParser()
