@@ -36,7 +36,7 @@ def fp_list_filesets(ns, outfob=sys.stdout, errfob=sys.stderr):
   fp = Fruitpile(ns.path)
   owner = os.getuid()
   fp.open()
-  fss = fp.list_filesets(uid=owner)
+  fss = fp.list_filesets(uid=owner, count=ns.count, start_at=ns.start_at)
   for fs in fss:
     print(template.render(item=fs), file=outfob)
   fp.close()
@@ -85,7 +85,7 @@ cksum: {{ item.checksum }}
   fp = Fruitpile(ns.path)
   owner = os.getuid()
   fp.open()
-  bfs = fp.list_files(uid=owner)
+  bfs = fp.list_files(uid=owner, count=ns.count, start_at=ns.start_at)
   for bf in bfs:
     print(template.render(item=bf), file=outfob)
   fp.close()
@@ -136,6 +136,9 @@ def fp_tool_main(args):
 
   # list filesets
   parser_list_fss = subparsers.add_parser("lsfs", help="List filesets in store")
+  parser_list_fss.add_argument("-c", "--count", metavar="COUNT", default=-1, help="Limit results to COUNT")
+  parser_list_fss.add_argument("-s", "--start-at", metavar="START_AT", default=1, help="Start returning results from START_AT item")
+
   parser_list_fss.set_defaults(func=fp_list_filesets)
 
   # add fileset
@@ -168,6 +171,8 @@ def fp_tool_main(args):
   parser_list_files = subparsers.add_parser("ls", help="List files in the repo")
   parser_list_files.add_argument("-l", "--long", action='store_true', default=False,
                                  help="Give a longer list of file information")
+  parser_list_files.add_argument("-c", "--count", metavar="COUNT", default=-1, help="Limit results to COUNT")
+  parser_list_files.add_argument("-s", "--start-at", metavar="START_AT", default=1, help="Start returning results from START_AT item")
   parser_list_files.set_defaults(func=fp_list_files)
 
   # transit file

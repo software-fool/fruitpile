@@ -100,8 +100,15 @@ class Fruitpile(object):
       raise FPLFileSetExists("file set %s already exists in store" % (kwargs.get("name")))
 
   def list_filesets(self, **kwargs):
+    count = kwargs.get("count", -1)
+    start_at = kwargs.get("start_at", 1)
     self.perm_manager.check_permission(kwargs.get("uid"), Capability.LIST_FILESETS)
-    fss = self.session.query(FileSet).all()
+    q = self.session.query(FileSet).order_by(FileSet.id)
+    if start_at != 1:
+      q = q.offset(start_at)
+    if count != -1:
+      q = q.limit(count)
+    fss = q.all()
     return fss
 
   def add_file(self, **kwargs):
@@ -160,8 +167,15 @@ class Fruitpile(object):
     return bf
 
   def list_files(self, **kwargs):
+    count = kwargs.get("count", -1)
+    start_at = kwargs.get("start_at", 1)
     self.perm_manager.check_permission(kwargs.get("uid"), Capability.LIST_FILES)
-    bfs = self.session.query(BinFile).all()
+    q = self.session.query(BinFile).order_by(BinFile.id)
+    if start_at != 1:
+      q = q.offset(start_at)
+    if count != -1:
+      q = q.limit(count)
+    bfs = q.all()
     return bfs
 
   def get_file(self, **kwargs):

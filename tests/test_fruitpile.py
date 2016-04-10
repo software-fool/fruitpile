@@ -182,6 +182,31 @@ class TestFruitpileAddFileSetOperations(unittest.TestCase):
     filesets = self.fp.list_filesets(uid=1046)
     self.assertEquals(filesets, [])
 
+  def _add_n_filesets(self, n):
+    for i in range(1,n+1):
+      self.fp.add_new_fileset(uid=1046, name="test-{}".format(i), version="3.1", revision="{}".format(1))
+
+  def test_list_limit_filesets(self):
+    self._add_n_filesets(10)
+    filesets = self.fp.list_filesets(uid=1046, count=3)
+    self.assertEquals(len(filesets), 3)
+    for i in range(1,4):
+      self.assertEquals(filesets[i-1].name, "test-{}".format(i))
+
+  def test_list_start_at_filesets(self):
+    self._add_n_filesets(10)
+    filesets = self.fp.list_filesets(uid=1046, start_at=7)
+    self.assertEquals(len(filesets), 3)
+    for i in range(3):
+      self.assertEquals(filesets[i].name, "test-{}".format(i+8))
+
+  def test_list_start_at_limit_filesets(self):
+    self._add_n_filesets(10)
+    filesets = self.fp.list_filesets(uid=1046, count=3, start_at=4)
+    self.assertEquals(len(filesets), 3)
+    for i in range(3):
+      self.assertEquals(filesets[i].name, "test-{}".format(i+5))
+
   def test_add_new_fileset(self):
     fileset = self.fp.add_new_fileset(name="test-1", version="3.1", revision="1234", uid=1046)
     self.assertEquals(str(fileset), "<FileSet(test-1 in default)>")
@@ -319,6 +344,47 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
     self.assertEquals(len(bfs2), 12)
     bfs3 = self.fp.list_files(uid=1046)
     self.assertEquals(bfs2, bfs3)
+
+  def _add_n_filesets_m_files_each(self, n, m):
+    for i in range(1, n+1):
+      self.fp.add_new_fileset(uid=1046, name="test-{}".format(i), version="3.1", revision="{}".format(1))
+    filename = "%s/data/example_file.txt" % (mydir)
+    for i in range(1, m+1):
+      self.fp.add_file(uid=1046,
+                       source_file=filename,
+                       fileset_id=1,
+                       name="artifact-%d.txt" % (i),
+                       path="deploy",
+                       primary=True,
+                       source="buildbot")
+
+  def test_list_files(self):
+    self._add_n_filesets_m_files_each(1, 10)
+    bfs = self.fp.list_files(uid=1046)
+    self.assertEquals(len(bfs), 10)
+    for i in range(10):
+      self.assertEquals(bfs[i].name, "artifact-{}.txt".format(i+1))
+
+  def test_list_count_files(self):
+    self._add_n_filesets_m_files_each(1, 10)
+    bfs = self.fp.list_files(uid=1046, count=3)
+    self.assertEquals(len(bfs), 3)
+    for i in range(3):
+      self.assertEquals(bfs[i].name, "artifact-{}.txt".format(i+1))
+
+  def test_list_start_at_files(self):
+    self._add_n_filesets_m_files_each(1, 10)
+    bfs = self.fp.list_files(uid=1046, start_at=7)
+    self.assertEquals(len(bfs), 3)
+    for i in range(3):
+      self.assertEquals(bfs[i].name, "artifact-{}.txt".format(i+8))
+
+  def test_list_count_and_start_at_files(self):
+    self._add_n_filesets_m_files_each(1, 10)
+    bfs = self.fp.list_files(uid=1046, start_at=4, count=3)
+    self.assertEquals(len(bfs), 3)
+    for i in range(3):
+      self.assertEquals(bfs[i].name, "artifact-{}.txt".format(i+5))
 
   def test_add_same_file_and_path_twice_to_same_file_set(self):
     bfs0 = self.fp.list_files(uid=1046)

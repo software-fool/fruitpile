@@ -26,9 +26,10 @@ class FruitpileFiles(Resource):
 
   def get(self):
     parser = reqparse.RequestParser()
-    parser.add_argument('size', type=int, help='number of files to return in one block')
+    parser.add_argument('count', type=int, help='number of files to return in one block')
     parser.add_argument('start_at', type=int, help='position to start at')
-    bfs = self.fp.list_files(uid=os.getuid())
+    args = parser.parse_args()
+    bfs = self.fp.list_files(uid=os.getuid(), count=args["count"], start_at=args["start_at"])
     bfss = [{"fileset_id":bf.fileset_id,
              "fileset": bf.fileset.name,
              "name":bf.name,
