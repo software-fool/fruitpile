@@ -45,21 +45,15 @@ class Fruitpile(object):
   def __init__(self, path="store"):
     self.path=path
     self.dbpath = os.path.join(path,"fpl.db")
-    self.lockpath = None
     self.state_map = {}
 
   def open(self):
     if not os.path.exists(self.dbpath):
       raise FPLConfiguration('fruitpile instance not found')
-    self.lockpath = os.path.join(self.path, ".lock")
     self.hostname = socket.gethostname()
     self.pid = os.getpid()
     self.owner = os.getuid()
     self.owner_name = pwd.getpwuid(self.owner)[0]
-    try:
-      os.symlink("%s-%d-%d=%s" % (self.hostname, self.pid, self.owner, self.owner_name), self.lockpath)
-    except OSError:
-      raise FPLRepoInUse("%s path already in use %s" % (self.dbpath, os.readlink(self.lockpath)))
     self.engine = create_engine('sqlite:///%s' % (self.dbpath))
     Session = sessionmaker(bind=self.engine)
     self.session = Session()
@@ -93,20 +87,6 @@ class Fruitpile(object):
     self.repo.close()
     self.session.close()
     self.engine.dispose()
-    try:
-      os.remove(self.lockpath)
-    except OSError as exc:
-      if exc[0] != 2:
-        raise
-    self.lockpath = None
-
-  def  __del__(self):
-    # If we go out of scope and the object's being destroyed make sure
-    # we remove the lock file.  Users should call close on the repo
-    # before saying goodbye, but this should protect against cases
-    # of unexpected termination
-    if self.lockpath:
-        os.remove(self.lockpath)
 
   def add_new_fileset(self, **kwargs):
     self.perm_manager.check_permission(kwargs.get("uid"), Capability.ADD_FILESET)

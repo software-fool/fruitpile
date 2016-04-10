@@ -150,9 +150,8 @@ class TestFruitpileOpenOperations(unittest.TestCase):
     fp1.init(uid=1046, username="db")
     fp1.open()
     fp2 = Fruitpile(self.store_path)
-    with self.assertRaises(FPLRepoInUse):
-      fp2.open()
-      self.assertEquals(fp1, fp2)
+    fp2.open()
+    self.assertNotEquals(fp1, fp2)
 
   def test_open_on_unreadable_permissions(self):
     fp = Fruitpile(self.store_path)
