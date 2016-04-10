@@ -32,7 +32,7 @@ def fp_init_repo(ns):
   fp.close()
 
 def fp_list_filesets(ns, outfob=sys.stdout, errfob=sys.stderr):
-  template = Template('{{ " %-10s %10s %8s %8s %-40s"|format(item.repo.name, item.id,item.version,item.revision,item.name) }}')
+  template = Template('{{ " %-10s %10s %8s %8s %-39s"|format(item.repo.name, item.id,item.version,item.revision,item.name) }}')
   fp = Fruitpile(ns.path)
   owner = os.getuid()
   fp.open()
