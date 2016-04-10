@@ -19,7 +19,7 @@ from flask_restful import Resource, reqparse
 from ...fp_ops import Fruitpile
 import os
 
-class FruitpileFiles(Resource):
+class FruitpileFilesets(Resource):
   def __init__(self, **kwargs):
     self.fp = Fruitpile(kwargs["fppath"])
     self.fp.open()
@@ -28,13 +28,10 @@ class FruitpileFiles(Resource):
     parser = reqparse.RequestParser()
     parser.add_argument('size', type=int, help='number of files to return in one block')
     parser.add_argument('start_at', type=int, help='position to start at')
-    bfs = self.fp.list_files(uid=os.getuid())
-    bfss = [{"fileset_id":bf.fileset_id,
-             "fileset": bf.fileset.name,
-             "name":bf.name,
-             "primary":bf.primary,
-             "state": bf.state.name,
-             "create_date":str(bf.create_date),
-             "update_date":str(bf.update_date),
-             "source": bf.source} for bf in bfs]
-    return bfss
+    fss = self.fp.list_filesets(uid=os.getuid())
+    fsss = [{"fileset_id":fs.id,
+             "name":fs.name,
+             "version":fs.version,
+             "revision":fs.revision,
+             "repo":fs.repo.name} for fs in fss]
+    return fsss
