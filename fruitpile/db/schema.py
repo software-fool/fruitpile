@@ -99,7 +99,7 @@ class Permission(Base):
   id = Column(Integer, primary_key=True)
   user_perms = relationship('UserPermission')
   name = Column(String(20), unique=True, nullable=False)
-  desc = Column(String, nullable=False)
+  description = Column(String, nullable=False)
   transitions = relationship('Transition')
 
   def __repr__(self):
@@ -206,7 +206,7 @@ def upgrade(engine, uid, username, path):
   session.add(User(uid=uid, name=username))
   for name in Capability.keys():
     cap = Capability.get(name)
-    session.add(Permission(id=cap.ident, name=cap.name, desc=cap.description))
+    session.add(Permission(id=cap.ident, name=cap.name, description=cap.description))
     session.add(UserPermission(user_id=uid, perm_id=cap.ident)) 
   state_dict = {}
   for sname in ["untested","testing","tested","approved","released","withdrawn"]:

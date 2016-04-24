@@ -36,11 +36,11 @@ def setUpDatabase():
   return engine, session
 
 def build_permissions_table(obj):
-  for name,desc in [("ADD_FILESET","Grant permission to add a fileset"),
+  for name,description in [("ADD_FILESET","Grant permission to add a fileset"),
                     ("ADD_FILES","Grant permission to add a file"),
                     ("LIST_FILESETS","Grant permission to list all filesets"),
                     ("LIST_FILES","Grant permission to list all files")]:
-    perm = Permission(name=name, desc=desc)
+    perm = Permission(name=name, description=description)
     obj.session.add(perm)
   obj.session.commit()
   obj.assertEquals(Capability.ADD_FILESET, 1)

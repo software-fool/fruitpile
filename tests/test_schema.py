@@ -76,7 +76,7 @@ class TestSchemaState(unittest.TestCase):
     self.session.rollback()
 
   def test_create_state_transitions(self):
-    perm = Permission(name="A_PERMISSION", desc="A permission for testing")
+    perm = Permission(name="A_PERMISSION", description="A permission for testing")
     st1 = State(name="start")
     st2 = State(name="in-progress")
     st3 = State(name="in-review")
@@ -102,7 +102,7 @@ class TestSchemaState(unittest.TestCase):
     st1 = State(name="begin")
     st2 = State(name="end")
     transfn = TransitionFunction(transfn="ensure_reviewed")
-    perm = Permission(name="A_PERMISSION", desc="A permission for testing")
+    perm = Permission(name="A_PERMISSION", description="A permission for testing")
     self.session.add_all([st1,st2,transfn,perm])
     self.session.commit()
     trns1 = Transition(start_id=st1.id, end_id=st2.id, perm=perm, transfn_id=transfn.id)
@@ -121,7 +121,7 @@ class TestSchemaState(unittest.TestCase):
     st1 = State(name="begin")
     st2 = State(name="end")
     transfn = TransitionFunction(transfn="transition_function")
-    perm = Permission(name="A_PERMISSION", desc="A permission for testing")
+    perm = Permission(name="A_PERMISSION", description="A permission for testing")
     self.session.add_all([st1,st2,transfn,perm])
     self.session.commit()
     trns1 = Transition(start_id=st1.id, end_id=st2.id, perm=perm, transfn_id=transfn.id)
@@ -262,7 +262,7 @@ class TestSchemaPermission(unittest.TestCase):
     self.session.close()
 
   def test_create_single_permission(self):
-    perm = Permission(name="ADD_FILESET", desc="Grant permission to add a fileset")
+    perm = Permission(name="ADD_FILESET", description="Grant permission to add a fileset")
     self.session.add(perm)
     self.session.commit()
     self.session.rollback()
@@ -272,7 +272,7 @@ class TestSchemaPermission(unittest.TestCase):
     self.assertEquals(len(perms), 1)
     self.assertEquals(perms[0], perm)
     self.assertEquals(perms[0].name, "ADD_FILESET")
-    self.assertEquals(perms[0].desc,"Grant permission to add a fileset")
+    self.assertEquals(perms[0].description,"Grant permission to add a fileset")
 
   def test_create_multiple_permissions(self):
     perm_names = [("ADD_FILESET","Grant permission to add a fileset"),
@@ -280,8 +280,8 @@ class TestSchemaPermission(unittest.TestCase):
                   ("LIST_FILESETS","Grant permission to list all filesets"),
                   ("LIST_FILES","Grant permission to list all files")]
     ps1 = []
-    for name, desc in perm_names:
-      ps1.append(Permission(name=name, desc=desc))
+    for name, description in perm_names:
+      ps1.append(Permission(name=name, description=description))
     self.session.add_all(ps1)
     self.session.commit()
     self.session.rollback()
@@ -291,9 +291,9 @@ class TestSchemaPermission(unittest.TestCase):
     self.assertEquals(ps1, ps2)
 
   def test_fail_to_create_duplicates(self):
-    perm1 = Permission(name="ADD_FILESET", desc="Grant permission to add a fileset")
+    perm1 = Permission(name="ADD_FILESET", description="Grant permission to add a fileset")
     self.session.add(perm1)
-    perm2 = Permission(name="ADD_FILESET", desc="Some other permission with the same name")
+    perm2 = Permission(name="ADD_FILESET", description="Some other permission with the same name")
     self.session.add(perm2)
     with self.assertRaises(IntegrityError):
       self.session.commit()
@@ -308,7 +308,7 @@ class TestSchemaUsers(unittest.TestCase):
     self.session.close()
 
   def test_create_user(self):
-    perm = Permission(name="GOD", desc="God power to do everything")
+    perm = Permission(name="GOD", description="God power to do everything")
     self.session.add(perm)
     self.session.commit()
     user = User(uid=1046, name="db")
@@ -331,8 +331,8 @@ class TestSchemaUsers(unittest.TestCase):
                   ("LIST_FILESETS","Grant permission to list all filesets"),
                   ("LIST_FILES","Grant permission to list all files")]
     ps = []
-    for name, desc in perm_names:
-      ps.append(Permission(name=name, desc=desc))
+    for name, description in perm_names:
+      ps.append(Permission(name=name, description=description))
     self.session.add_all(ps)
     self.session.commit()
     user = User(uid=1046, name="db")
