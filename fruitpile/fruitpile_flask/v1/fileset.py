@@ -27,5 +27,5 @@ class FruitpileFileset(FruitpileResource):
     self.fp.open()
     super(FruitpileFilesets,self).__init__()
 
-  def get(self):
+  def get(self, id):
     pass
