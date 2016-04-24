@@ -62,11 +62,16 @@ class TestFruitpileInitOperations(unittest.TestCase):
     rows = curs.fetchall()
     expected_tables = [
       "binfiles",
+      "comments",
       "filesets",
       "migrations",
       "permissions",
+      "properties",
+      "props_assocs",
       "repos",
       "states",
+      "tags",
+      "tags_assocs",
       "transfuncs",
       "transitions",
       "transfuncdata",
