@@ -211,17 +211,20 @@ doesn't merge easily so managing configuration is harder.
 * add comments to state transition
 * add functions to allow extra conditions to be checked when
   transitioning stats
+  (Apr-2016: one function added to check for the existence of another
+  auxilliary file)
 
 ## Operations
 
-* get file
+* get file (Apr-2016: done)
 * move file (locations)
 * archive files
 * change file type (auxilliary->primary/primary->auxilliary)
 
 ## Tags and Properties
 
-* all of it
+* (Apr-2016) Tags and properties enabled for FileSets
+* Tags and properties on binfiles
 
 ## command line tool
 
@@ -231,6 +234,22 @@ doesn't merge easily so managing configuration is harder.
 
 ## REST API
 
-* all of it
+* (Apr-2016) Ability to list files and filesets as well as ability to
+  create a fileset.
+* Add files, search
+
+## Load test
+
+* Is it possible to use Fruitpile to manage large numbers of files
+  (say hundreds of thousands or millions?)
+
+## Maintenance
+
+* Backup
+* Upgrade (Apr-2016) began the first part of this by providing at
+  least the outline of how an upgrade might work.  Something like
+  the upgrade/downgrade script components are subsumed into the
+  store so they can be found later - rather like the way Windows apps
+  bury their installers into the Windows directory somewhere
 
 
