@@ -218,3 +218,27 @@ class Fruitpile(object):
     self.session.commit()
     return True
 
+  def add_fileset_property(self, **kwargs):
+    uid = kwargs.get("uid")
+    fileset = kwargs.get("fileset")
+    name = kwargs.get("name")
+    value = kwargs.get("value")
+    update = kwargs.get("update", False)
+    self.perm_manager.check_permission(uid, Capability.ADD_FILESET_PROPERTY)
+    pas = self.session.query(PropAssoc).filter(PropAssoc.fileset_id == fileset.id).all()
+    for pa in pas:
+      prop = self.session.query(Property).filter(Property.id == pa.prop_id).one()
+      if prop.name == name:
+        if not update:
+          raise FPLPropertyExists(name)
+        self.perm_manager.check_permission(uid, Capability.UPDATE_FILESET_PROPERTY)
+        prop.value = value
+        self.session.commit()
+        return True
+    prop = Property(name=name, value=value)
+    self.session.add(prop)
+    self.session.commit()
+    pa = PropAssoc(prop_id=prop.id, fileset_id=fileset.id)
+    self.session.add(pa)
+    self.session.commit()
+    return True

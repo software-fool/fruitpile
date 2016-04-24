@@ -155,7 +155,7 @@ class Property(Base):
   __tablename__ = "properties"
 
   id = Column(Integer, primary_key=True)
-  name = Column(String(60), unique=True, nullable=False)
+  name = Column(String(60), nullable=False)
   value = Column(String, nullable=False)
 
   def __repr__(self):
@@ -204,6 +204,13 @@ class FileSet(Base):
   def tags(self, session):
     tas = session.query(TagAssoc).filter(TagAssoc.fileset_id == self.id).all()
     return [ta.tag.tag for ta in tas]
+
+  def properties(self, session):
+    pas = session.query(PropAssoc).filter(PropAssoc.fileset_id == self.id).all()
+    props={}
+    for pa in pas:
+      props[pa.prop.name] = pa.prop.value
+    return props
 
   def __repr__(self):
     return "<FileSet(%s in %s)>" % (self.name, self.repo.name)
@@ -280,6 +287,7 @@ class PropAssoc(Base):
   )
 
   prop_id = Column('prop_id', ForeignKey('properties.id'))
+  prop =  relationship('Property')
   fileset_id = Column('fileset_id', ForeignKey('filesets.id'))
 
   def __repr__(self):

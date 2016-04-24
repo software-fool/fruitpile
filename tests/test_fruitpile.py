@@ -25,7 +25,7 @@ from datetime import datetime, timedelta
 mydir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
 sys.path.append(os.path.dirname(mydir))
 
-from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists, FPLBinFileExists, FPLSourceFileNotFound, FPLSourceFilePermissionDenied, FPLPermissionDenied, FPLInvalidStateTransition, FPLInvalidState, FPLBinFileNotExists, FPLInvalidTargetForStateChange, FPLFileExists, FPLCannotTransitionState
+from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists, FPLBinFileExists, FPLSourceFileNotFound, FPLSourceFilePermissionDenied, FPLPermissionDenied, FPLInvalidStateTransition, FPLInvalidState, FPLBinFileNotExists, FPLInvalidTargetForStateChange, FPLFileExists, FPLCannotTransitionState, FPLPropertyExists
 from fruitpile.db.schema import *
 from fruitpile.fp_constants import Capability
 from fruitpile.fp_state import StateMachine
@@ -148,9 +148,11 @@ class TestFruitpileOpenOperations(unittest.TestCase):
     self.assertEquals(Capability.RELEASE_ARTIFACT, 9)
     self.assertEquals(Capability.GET_FILES, 10)
     self.assertEquals(Capability.TAG_FILESET, 11)
+    self.assertEquals(Capability.ADD_FILESET_PROPERTY, 12)
+    self.assertEquals(Capability.UPDATE_FILESET_PROPERTY, 13)
     session = fp.session
     perms = session.query(UserPermission).filter(UserPermission.user_id==1046).all()
-    self.assertEquals(len(perms), 11)
+    self.assertEquals(len(perms), 13)
 
   def test_reopen_existing_repo(self):
     fp1 = Fruitpile(self.store_path)
@@ -844,6 +846,10 @@ class TestTags(unittest.TestCase):
     self.fp.tag_fileset(uid=1046, fileset=self.fs, tag="RC1")
     self.assertEquals(self.fs.tags(self.fp.session), ["RC1"])
 
+  def test_create_new_tag_no_permission(self):
+    with self.assertRaises(FPLPermissionDenied):
+      self.fp.tag_fileset(uid=1045, fileset=self.fs, tag="RC1")
+
   def test_create_reapply_same_tag(self):
     self.fp.tag_fileset(uid=1046, fileset=self.fs, tag="RC1")
     self.fp.tag_fileset(uid=1046, fileset=self.fs, tag="RC1")
@@ -865,6 +871,90 @@ class TestTags(unittest.TestCase):
     self.fp.tag_fileset(uid=1046, fileset=fs, tag=tag)
     tags = self.fp.session.query(Tag).all()
     self.assertEquals(len(tags), 1)
+
+
+class TestProperty(unittest.TestCase):
+
+  def setUp(self):
+    self.store_path = "/tmp/store%d" % (os.getpid())
+    clear_tree(self.store_path)
+    fp = Fruitpile(self.store_path)
+    fp.init(uid=1046, username="db")
+    fp.open()
+    self.fp = fp
+    fs = self.fp.add_new_fileset(name="test-1",
+                                 version="1",
+                                 revision="123",
+                                 uid=1046)
+    self.fs = fs
+    filename = "%s/data/example_file.txt" % (mydir)
+    self.bf = self.fp.add_file(
+        uid=1046,
+        source_file=filename,
+        fileset_id=fs.id,
+        name="requirements.txt",
+        path="deploy",
+        primary=True,
+        source="buildbot")
+    self.aux = self.fp.add_file(
+        uid=1046,
+        source_file=filename,
+        fileset_id=fs.id,
+        name="coverage-report.txt",
+        path="deploy",
+        primary=False,
+        source="buildbot")
+
+  def tearDown(self):
+    self.fp.close()
+    self.fp = None
+    clear_tree(self.store_path)
+
+  def test_add_new_property(self):
+    self.fp.add_fileset_property(uid=1046, fileset=self.fs, name="TestDate", value="2015-10-31")
+    self.assertEquals(self.fs.properties(self.fp.session), {"TestDate":"2015-10-31"})
+
+  def test_add_new_property_no_permission(self):
+    with self.assertRaises(FPLPermissionDenied):
+      self.fp.add_fileset_property(uid=1045, fileset=self.fs, name="TestDate", value="2015-10-31")
+
+  def test_add_property_already_exists(self):
+    self.fp.add_fileset_property(uid=1046, fileset=self.fs, name="TestDate", value="2015-10-31")
+    self.assertEquals(self.fs.properties(self.fp.session), {"TestDate":"2015-10-31"})
+    with self.assertRaises(FPLPropertyExists):
+      self.fp.add_fileset_property(uid=1046, fileset=self.fs, name="TestDate", value="2015-10-29")
+    self.assertEquals(self.fs.properties(self.fp.session), {"TestDate":"2015-10-31"})
+
+  def test_update_property(self):
+    self.fp.add_fileset_property(uid=1046, fileset=self.fs, name="TestDate", value="2015-10-31")
+    self.assertEquals(self.fs.properties(self.fp.session), {"TestDate":"2015-10-31"})
+    self.fp.add_fileset_property(uid=1046, fileset=self.fs, name="TestDate", value="2015-10-29", update=True)
+    self.assertEquals(self.fs.properties(self.fp.session), {"TestDate":"2015-10-29"})
+
+  def test_update_property_permission_denied(self):
+    self.fp.add_fileset_property(uid=1046, fileset=self.fs, name="TestDate", value="2015-10-31")
+    self.assertEquals(self.fs.properties(self.fp.session), {"TestDate":"2015-10-31"})
+    with self.assertRaises(FPLPermissionDenied):
+      self.fp.add_fileset_property(uid=1045, fileset=self.fs, name="TestDate", value="2015-10-29", update=True)
+
+  def test_add_same_property_name_with_different_values_to_different_filesets(self):
+    fs = self.fp.add_new_fileset(name="test-2",
+                                 version="1",
+                                 revision="123",
+                                 uid=1046)
+    self.fp.add_fileset_property(uid=1046, fileset=self.fs, name="TestDate", value="2015-10-31")
+    self.assertEquals(self.fs.properties(self.fp.session), {"TestDate":"2015-10-31"})
+    self.fp.add_fileset_property(uid=1046, fileset=fs, name="TestDate", value="2015-10-29")
+    self.assertEquals(fs.properties(self.fp.session), {"TestDate":"2015-10-29"})
+    pas = self.fp.session.query(PropAssoc).all()
+    self.assertEquals(len(pas), 2)
+    props = self.fp.session.query(Property).all()
+    self.assertEquals(len(props), 2)
+    self.assertEquals(props[0].name, "TestDate")
+    self.assertEquals(props[0].value, "2015-10-31")
+    self.assertEquals(props[1].name, "TestDate")
+    self.assertEquals(props[1].value, "2015-10-29")
+    
 
 
 if __name__ == "__main__":

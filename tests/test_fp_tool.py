@@ -46,7 +46,7 @@ class TestFPToolInit(unittest.TestCase):
     conn = sqlite3.connect(os.path.join(self.path,"fpl.db"))
     curs = conn.execute("SELECT * FROM SQLITE_MASTER")
     rows = curs.fetchall()
-    self.assertEquals(len(rows), 30)
+    self.assertEquals(len(rows), 29)
     curs = conn.execute("select * from repos")
     rows = curs.fetchall()
     self.assertEquals(len(rows), 1)

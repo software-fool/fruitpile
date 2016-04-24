@@ -66,3 +66,6 @@ class FPLFileExists(FruitpileError):
 
 class FPLCannotWriteFile(FruitpileError):
   pass
+
+class FPLPropertyExists(FruitpileError):
+  pass
