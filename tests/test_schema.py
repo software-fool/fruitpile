@@ -382,11 +382,65 @@ class TestPermission(unittest.TestCase):
     self.session.close()
 
   def test_permission(self):
-    perm = Permission(name="OMNIPOTENCE", desc="An all powerful permission")
+    perm = Permission(name="OMNIPOTENCE", description="An all powerful permission")
     self.session.add(perm)
     self.session.commit()
     self.assertEquals(perm.id, 1)
     self.assertEquals(str(perm), "<Permission(OMNIPOTENCE=1)>")
+
+class TestTag(unittest.TestCase):
+
+  def setUp(self):
+    self.engine, self.session = setUpDatabase()
+
+  def tearDown(self):
+    self.session.close()
+
+  def test_create_new_tag(self):
+    tag = Tag(tag="MemoryOptimized")
+    self.session.add(tag)
+    self.session.commit()
+    self.assertEquals(tag.id, 1)
+    self.assertEquals(str(tag), "<Tag(MemoryOptimized)>")
+
+class TestProperty(unittest.TestCase):
+
+  def setUp(self):
+    self.engine, self.session = setUpDatabase()
+
+  def tearDown(self):
+    self.session.close()
+
+  def test_create_new_property(self):
+    prop = Property(name="Author", value="Dwight Jones")
+    self.session.add(prop)
+    self.session.commit()
+    self.assertEquals(prop.id, 1)
+    self.assertEquals(str(prop), "<Property(Author,Dwight Jones)>")
+
+class TestTagAssocs(unittest.TestCase):
+
+  def setUp(self):
+    self.engine, self.session = setUpDatabase()
+    self.repo = Repo(name="default", path="/export/fruitpile/repo", repo_type="FileManager")
+    self.fs = FileSet(name="test-1", version="3.1", revision="1234", repo=self.repo)
+    self.session.add_all([self.repo,self.fs])
+    self.session.commit()
+
+  def tearDown(self):
+    self.session.close()
+
+  def test_create_new_tag_association(self):
+    tag = Tag(tag="TAG1")
+    self.session.add(tag)
+    self.session.commit()
+    tag_assoc = TagAssoc(tag_id=tag.id, fileset_id=self.fs.id)
+    self.session.add(tag_assoc)
+    self.session.commit()
+    rows = self.session.query(TagAssoc).all()
+    self.assertEquals(len(rows), 1)
+    self.assertEquals(rows[0].tag_id, tag.id)
+    self.assertEquals(rows[0].fileset_id, self.fs.id)
 
 
 if __name__ == "__main__":

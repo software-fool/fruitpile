@@ -15,7 +15,7 @@
 # along with Fruitpile.  If not, see <http://www.gnu.org/licenses/>.
 
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, Boolean, ForeignKey, Table
 from sqlalchemy.schema import UniqueConstraint, PrimaryKeyConstraint, CheckConstraint
 from sqlalchemy.orm import relationship, sessionmaker
 from sqlalchemy import create_engine
@@ -111,6 +111,7 @@ class User(Base):
   uid = Column(Integer, primary_key=True)
   user_perms = relationship('UserPermission')
   name = Column(String(20), unique=True, nullable=False)
+  comments = relationship('Comment')
 
   def __repr__(self):
     return "<User(%s=%d)>" % (self.name, self.uid)
@@ -141,6 +142,50 @@ class Repo(Base):
   repo_type = Column(String)
   filesets = relationship("FileSet")
 
+class Tag(Base):
+  __tablename__ = "tags"
+
+  id = Column(Integer, primary_key=True)
+  tag = Column(String(60), nullable=False)
+
+  def __repr__(self):
+    return "<Tag(%s)>" % (self.tag)
+
+class Property(Base):
+  __tablename__ = "properties"
+
+  id = Column(Integer, primary_key=True)
+  name = Column(String(60), nullable=False)
+  value = Column(String, nullable=False)
+
+  def __repr__(self):
+    return "<Property(%s,%s)>" % (self.name,self.value)
+
+class Comment(Base):
+  __tablename__ = "comments"
+
+  id = Column(Integer, primary_key=True)
+  owner = Column(Integer, ForeignKey('users.uid'), nullable=False)
+  user = relationship('User', back_populates="comments")
+  system = Column(Boolean, nullable=False)
+  text = Column(String, nullable=False)
+  recorded_at = Column(DateTime, nullable=False)
+
+  def __repr__(self):
+    return "<Comment('%s'[uid=%d],sys=%s@%s)>" % (self.text, self.owner, self.system, self.recorded_at)
+
+#class FileSetComment(Base):
+#  __tablename__ = 'fileset_comments'
+#
+#  id = Column(Integer, primary_key=True)
+#  fileset_id = Column(Integer, ForeignKey('filesets.id'), nullable=False)
+#  filesets = relationship('FileSet', back_populates='fileset_comments')
+#  comment_id = Column(Integer, ForeignKey('comments.id'), nullable=False)
+#  comments = relationship('Comment', back_populates='fileset_comments')
+#
+#  def __repr__(self):
+#    return "<FileSetComment(fs=%s,comment=%d)>" % (self.fileset, self.comment)
+
 class FileSet(Base):
   __tablename__ = 'filesets'
 
@@ -153,10 +198,23 @@ class FileSet(Base):
   version = Column(String, nullable=False)
   # Revision of the fileset - i.e. the tip commit id, tag etc.
   revision = Column(String, nullable=False)
+#  comment_id = Column(Integer, ForeignKey('fileset_comments.id'), nullable=False)
+#  comments = relationship("FileSetComment", foreign_keys=[comment_id], back_populates='filesets')
 
   def __repr__(self):
     return "<FileSet(%s in %s)>" % (self.name, self.repo.name)
 
+#class BinFileComment(Base):
+#  __tablename__ = 'binfile_comments'
+#
+#  id = Column(Integer, primary_key=True)
+#  binfile_id = Column(Integer, ForeignKey('binfiles.id'), nullable=False)
+#  binfile = relationship('BinFile', foreign_keys=[binfile_id], back_populates='binfile_comments')
+#  comment_id = Column(Integer, ForeignKey('comments.id'), nullable=False)
+#  comment = relationship('Comment', foreign_keys=[comment_id], back_populates='binfile_comments')
+#
+#  def __repr__(self):
+#    return "<BinFileComment(bf=%s,comment=%s)" % (self.binfile, self.comment)
 
 class BinFile(Base):
   __tablename__ = 'binfiles'
@@ -192,10 +250,36 @@ class BinFile(Base):
   # the file and if so, what type.  If the file is already in a compressed
   # form then it won't be recompressed (typically used for text documents
   ztype = Column(String)
-  
-  
+#  comment_id = Column(Integer, ForeignKey('binfile_comments.id'), nullable=False)
+#  comments = relationship('BinFileComment', foreign_keys=[comment_id], back_populates='binfiles')
+
   def __repr__(self):
     return "<BinFile(name='%s', path='%s')>" % (self.name, self.path)
+
+class TagAssoc(Base):
+  __tablename__ = "tags_assocs"
+  __table_args__ = (
+    PrimaryKeyConstraint('tag_id','fileset_id'),
+  )
+
+  tag_id = Column('tag_id', ForeignKey('tags.id'), primary_key=True)
+  fileset_id = Column('fileset_id', ForeignKey('filesets.id'), primary_key=True)
+
+  def __repr__(self):
+    return "<TagAssoc(%d,%d)>" % (self.tag_id, self.fileset_id)
+
+class PropAssoc(Base):
+  __tablename__ = "props_assocs"
+  __table_args__ = (
+    PrimaryKeyConstraint('prop_id','fileset_id'),
+  )
+
+  prop_id = Column('prop_id', ForeignKey('properties.id'))
+  fileset_id = Column('fileset_id', ForeignKey('filesets.id'))
+
+  def __repr__(self):
+    return "<PropAssoc(%d,%d)>" % (self.prop_id, self.fileset_id)
+
 
 def upgrade(engine, uid, username, path):
   Base.metadata.create_all(bind=engine)
