@@ -60,7 +60,8 @@ _CAPABILITIES = [
     (7, "ARTIFACT_TESTED", "Permission to mark testing as completed"),
     (8, "APPROVE_ARTIFACT", "Permission to mark artifact as approved"),
     (9, "RELEASE_ARTIFACT", "Permission to release artifact"),
-    (10, "GET_FILES", "Permission to retrieve artifacts")]
+    (10, "GET_FILES", "Permission to retrieve artifacts"),
+    (11, "TAG_FILESET", "Permission to add tags to filesets")]
 
 for perm_id, perm_name, perm_desc in _CAPABILITIES:
   Capability(perm_id, perm_name, perm_desc)

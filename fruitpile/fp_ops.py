@@ -197,3 +197,24 @@ class Fruitpile(object):
     srcfob.close()
     snkfob.close()
     return True
+
+  def tag_fileset(self, **kwargs):
+    uid = kwargs.get("uid")
+    fs = kwargs.get("fileset")
+    tag = kwargs.get("tag")
+    self.perm_manager.check_permission(uid, Capability.TAG_FILESET)
+    tags = self.session.query(Tag).filter(Tag.tag == tag).all()
+    if tags == []:
+      tag = Tag(tag=tag)
+      self.session.add(tag)
+      self.session.commit()
+    else:
+      tag = tags[0]
+      existing_tags = fs.tags(self.session)
+      if tag.tag in existing_tags:
+        return False
+    tag_assoc = TagAssoc(tag_id=tag.id, fileset_id=fs.id)
+    self.session.add(tag_assoc)
+    self.session.commit()
+    return True
+

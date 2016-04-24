@@ -146,9 +146,11 @@ class TestFruitpileOpenOperations(unittest.TestCase):
     self.assertEquals(Capability.ARTIFACT_TESTED, 7)
     self.assertEquals(Capability.APPROVE_ARTIFACT, 8)
     self.assertEquals(Capability.RELEASE_ARTIFACT, 9)
+    self.assertEquals(Capability.GET_FILES, 10)
+    self.assertEquals(Capability.TAG_FILESET, 11)
     session = fp.session
     perms = session.query(UserPermission).filter(UserPermission.user_id==1046).all()
-    self.assertEquals(len(perms), 10)
+    self.assertEquals(len(perms), 11)
 
   def test_reopen_existing_repo(self):
     fp1 = Fruitpile(self.store_path)
@@ -800,6 +802,69 @@ class TestTransitionWithTransitionFunction(unittest.TestCase):
   def test_check_file_with_file_name_exists(self):
     sm = StateMachine.create_state_machine(self.fp.session)
     new_state = sm.transit
+
+class TestTags(unittest.TestCase):
+
+  def setUp(self):
+    self.store_path = "/tmp/store%d" % (os.getpid())
+    clear_tree(self.store_path)
+    fp = Fruitpile(self.store_path)
+    fp.init(uid=1046, username="db")
+    fp.open()
+    self.fp = fp
+    fs = self.fp.add_new_fileset(name="test-1",
+                                 version="1",
+                                 revision="123",
+                                 uid=1046)
+    self.fs = fs
+    filename = "%s/data/example_file.txt" % (mydir)
+    self.bf = self.fp.add_file(
+        uid=1046,
+        source_file=filename,
+        fileset_id=fs.id,
+        name="requirements.txt",
+        path="deploy",
+        primary=True,
+        source="buildbot")
+    self.aux = self.fp.add_file(
+        uid=1046,
+        source_file=filename,
+        fileset_id=fs.id,
+        name="coverage-report.txt",
+        path="deploy",
+        primary=False,
+        source="buildbot")
+
+  def tearDown(self):
+    self.fp.close()
+    self.fp = None
+    clear_tree(self.store_path)
+
+  def test_create_new_tag(self):
+    self.fp.tag_fileset(uid=1046, fileset=self.fs, tag="RC1")
+    self.assertEquals(self.fs.tags(self.fp.session), ["RC1"])
+
+  def test_create_reapply_same_tag(self):
+    self.fp.tag_fileset(uid=1046, fileset=self.fs, tag="RC1")
+    self.fp.tag_fileset(uid=1046, fileset=self.fs, tag="RC1")
+    self.assertEquals(self.fs.tags(self.fp.session), ["RC1"])
+
+  def test_add_multiple_tags(self):
+    some_tags = ["RC1","RC2","RC3"]
+    for t in some_tags:
+      self.fp.tag_fileset(uid=1046, fileset=self.fs, tag=t)
+    self.assertEquals(sorted(self.fs.tags(self.fp.session)), some_tags)
+
+  def test_add_same_tag_to_multiple_filesets(self):
+    tag = "RC1"
+    fs = self.fp.add_new_fileset(name="test-2",
+                                 version="1",
+                                 revision="123",
+                                 uid=1046)
+    self.fp.tag_fileset(uid=1046, fileset=self.fs, tag=tag)
+    self.fp.tag_fileset(uid=1046, fileset=fs, tag=tag)
+    tags = self.fp.session.query(Tag).all()
+    self.assertEquals(len(tags), 1)
 
 
 if __name__ == "__main__":

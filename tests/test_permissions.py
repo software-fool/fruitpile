@@ -90,7 +90,8 @@ class TestPermissionManager(unittest.TestCase):
                            "LIST_FILESETS","LIST_FILES",
                            "APPROVE_ARTIFACT","ARTIFACT_TESTED",
                            "WITHDRAW_ARTIFACT","BEGIN_TESTING",
-                           "RELEASE_ARTIFACT","GET_FILES"]))
+                           "RELEASE_ARTIFACT","GET_FILES",
+                           "TAG_FILESET"]))
 
   def test_check_permission_with_uid_no_permissions(self):
     build_permissions_table(self)

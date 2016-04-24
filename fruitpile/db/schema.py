@@ -146,7 +146,7 @@ class Tag(Base):
   __tablename__ = "tags"
 
   id = Column(Integer, primary_key=True)
-  tag = Column(String(60), nullable=False)
+  tag = Column(String(60), unique=True, nullable=False)
 
   def __repr__(self):
     return "<Tag(%s)>" % (self.tag)
@@ -155,7 +155,7 @@ class Property(Base):
   __tablename__ = "properties"
 
   id = Column(Integer, primary_key=True)
-  name = Column(String(60), nullable=False)
+  name = Column(String(60), unique=True, nullable=False)
   value = Column(String, nullable=False)
 
   def __repr__(self):
@@ -200,6 +200,10 @@ class FileSet(Base):
   revision = Column(String, nullable=False)
 #  comment_id = Column(Integer, ForeignKey('fileset_comments.id'), nullable=False)
 #  comments = relationship("FileSetComment", foreign_keys=[comment_id], back_populates='filesets')
+
+  def tags(self, session):
+    tas = session.query(TagAssoc).filter(TagAssoc.fileset_id == self.id).all()
+    return [ta.tag.tag for ta in tas]
 
   def __repr__(self):
     return "<FileSet(%s in %s)>" % (self.name, self.repo.name)
@@ -263,6 +267,7 @@ class TagAssoc(Base):
   )
 
   tag_id = Column('tag_id', ForeignKey('tags.id'), primary_key=True)
+  tag = relationship('Tag')
   fileset_id = Column('fileset_id', ForeignKey('filesets.id'), primary_key=True)
 
   def __repr__(self):
