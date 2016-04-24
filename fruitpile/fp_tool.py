@@ -17,7 +17,7 @@
 # along with Fruitpile.  If not, see <http://www.gnu.org/licenses/>.
 from __future__ import print_function
 from __future__ import unicode_literals
-from fruitpile import Fruitpile, FPLInvalidState, FPLBinFileNotExists, FPLInvalidTargetForStateChange, FPLInvalidStateTransition, FPLFileSetExists, FPLFileExists, FPLCannotWriteFile
+from fruitpile import Fruitpile, FPLInvalidState, FPLBinFileNotExists, FPLInvalidTargetForStateChange, FPLInvalidStateTransition, FPLFileSetExists, FPLFileExists, FPLCannotWriteFile, FPLPropertyExists
 from argparse import ArgumentParser
 import pwd
 import os
@@ -39,6 +39,11 @@ def fp_list_filesets(ns, outfob=sys.stdout, errfob=sys.stderr):
   fss = fp.list_filesets(uid=owner, count=ns.count, start_at=ns.start_at)
   for fs in fss:
     print(template.render(item=fs), file=outfob)
+    if ns.tags:
+      print("  "+",".join(fs.tags(fp.session)), file=outfob)
+    if ns.properties:
+      for pk,pv in fs.properties(fp.session).items():
+        print("  {}={}".format(pk, pv), file=outfob)
   fp.close()
 
 def fp_add_filesets(ns, outfob=sys.stdout, errfob=sys.stderr):
@@ -53,6 +58,30 @@ def fp_add_filesets(ns, outfob=sys.stdout, errfob=sys.stderr):
   except FPLFileSetExists as e:
     print("Fileset '{0}' already exists".format(str(ns.name)), file=outfob)
   fp.close()
+
+def fp_add_fileset_tags(ns, outfob=sys.stdout, errfob=sys.stderr):
+  fp = Fruitpile(ns.path)
+  owner = os.getuid()
+  fp.open()
+  fss = fp.get_fileset(uid=owner, fileset_id=ns.id)
+  if fss == []:
+    print("Fileset id {0} not found".format(ns.id), file=errfob)
+    return 1
+  fp.tag_fileset(uid=owner, fileset=fss[0], tag=ns.tag)
+
+def fp_add_fileset_props(ns, outfob=sys.stdout, errfob=sys.stderr):
+  fp = Fruitpile(ns.path)
+  owner = os.getuid()
+  fp.open()
+  fss = fp.get_fileset(uid=owner, fileset_id=ns.id)
+  if fss == []:
+    print("Fileset id {0} not found".format(ns.id), file=errfob)
+    return 1
+  try:
+    fp.add_fileset_property(uid=owner, fileset=fss[0], name=ns.name, value=ns.value, update=ns.update)
+  except FPLPropertyExists:
+    print("Fileset 1 already has property {}".format(ns.name), file=errfob)
+  
 
 def fp_add_file(ns, outfob=sys.stdout, errfob=sys.stderr):
   fp = Fruitpile(ns.path)
@@ -138,6 +167,8 @@ def fp_tool_main(args):
   parser_list_fss = subparsers.add_parser("lsfs", help="List filesets in store")
   parser_list_fss.add_argument("-c", "--count", metavar="COUNT", default=-1, help="Limit results to COUNT")
   parser_list_fss.add_argument("-s", "--start-at", metavar="START_AT", default=1, help="Start returning results from START_AT item")
+  parser_list_fss.add_argument("-t", "--tags", action='store_true', default=False, help="Report tags associated with each fileset")
+  parser_list_fss.add_argument("-p", "--properties", action='store_true', default=False, help="Report properties associated with each fileset")
 
   parser_list_fss.set_defaults(func=fp_list_filesets)
 
@@ -186,6 +217,20 @@ def fp_tool_main(args):
   parser_get_file.add_argument("-i","--id", type=int, required=True, help="File id of the file to be retrieved from the repo")
   parser_get_file.add_argument("-t","--to-file", required=True, help="Name of the file to copy the contents to")
   parser_get_file.set_defaults(func=fp_get_file)
+
+  # tag a fileset
+  parser_tag_fileset = subparsers.add_parser("tagfs", help="tag a fileset")
+  parser_tag_fileset.add_argument("-i", "--id", type=int, required=True, help="Fileset id to add the tag to")
+  parser_tag_fileset.add_argument("-t", "--tag", required=True, help="Tag to add to the fileset")
+  parser_tag_fileset.set_defaults(func=fp_add_fileset_tags)
+
+  # add property to fileset
+  parser_add_fs_prop = subparsers.add_parser("fsprop", help="add or update a property")
+  parser_add_fs_prop.add_argument("-i", "--id", type=int, required=True, help="Fileset id to add the property to")
+  parser_add_fs_prop.add_argument("-n", "--name", required=True, help="Property name to be added")
+  parser_add_fs_prop.add_argument("-v", "--value", required=True, help="Value of property to be added")
+  parser_add_fs_prop.add_argument("-u", "--update", action='store_true', help="Update the property if it already exists")
+  parser_add_fs_prop.set_defaults(func=fp_add_fileset_props)
 
   # server
   parser_serve = subparsers.add_parser("serve", help="Help for the serve command")

@@ -80,7 +80,7 @@ class TestFPToolFileSetOps(unittest.TestCase):
     self.assertEquals(words, expected)
 
   def test_list_filesets(self):
-    ns = Namespace(path=self.path, count=-1, start_at=1)
+    ns = Namespace(path=self.path, count=-1, start_at=1, tags=False, properties=False)
     self.check_output(ns, [])
 
   def test_list_filesets_from_cli(self):
@@ -94,7 +94,7 @@ class TestFPToolFileSetOps(unittest.TestCase):
   def test_add_fileset(self):
     ns = Namespace(path=self.path, version="3.1", revision="1234", name="test-1")
     fp_add_filesets(ns)
-    ns = Namespace(path=self.path, long=False, count=-1, start_at=1)
+    ns = Namespace(path=self.path, long=False, count=-1, start_at=1, tags=False, properties=False)
     self.check_output(ns, ["default","1","3.1","1234","test-1"])
 
   def test_add_multiple_filesets(self):
@@ -106,7 +106,7 @@ class TestFPToolFileSetOps(unittest.TestCase):
       ns = Namespace(path=self.path, version=vers, revision=revn, name=name)
       fp_add_filesets(ns)
       words.extend(["default","%d" % (i+1), vers, revn, name])
-    ns = Namespace(path=self.path, long=False, count=-1, start_at=1)
+    ns = Namespace(path=self.path, long=False, count=-1, start_at=1, tags=False, properties=False)
     self.check_output(ns, words)
 
   def test_add_repeated_fileset(self):
@@ -535,7 +535,147 @@ class TestFPToolGetFileOperations(unittest.TestCase):
     self.assertEquals(errfob.getvalue(), "the target file '{}' cannot be written to\n".format(new_path))
 
 
+class TestFPToolTagFileSetOperations(unittest.TestCase):
 
+  def setUp(self):
+    self.path = "/tmp/fptool.%d" % (os.getpid())
+    ns = Namespace(path=self.path)
+    fp_init_repo(ns)
+    ns = Namespace(path=self.path, version="3.1", revision="1", name="build-1")
+    fob = StringIO()
+    fp_add_filesets(ns, outfob=fob)
+    self.assertEquals(fob.getvalue(), "")
+    ns = Namespace(path=self.path, version="3.1", revision="2", name="build-2")
+    fob = StringIO()
+    fp_add_filesets(ns, outfob=fob)
+    self.assertEquals(fob.getvalue(), "")
+    self.dest_path = "/tmp/tmp_file.{}".format(os.getpid())
+
+  def tearDown(self):
+    clear_tree(self.path)
+    try:
+      os.remove(self.dest_path)
+    except:
+      pass
+
+  def test_tag_fileset_by_id(self):
+    ns = Namespace(path=self.path, id=1, tag="RC1")
+    fob = StringIO()
+    fp_add_fileset_tags(ns, outfob=fob, errfob=fob)
+    self.assertEquals(fob.getvalue(), "")
+    outfob = StringIO()
+    ns = Namespace(path=self.path, tags=True, count=-1, start_at=1, properties=False)
+    errfob = StringIO()
+    fp_list_filesets(ns, outfob=outfob, errfob=errfob)
+    self.assertEquals(errfob.getvalue(), "")
+    txt = outfob.getvalue()
+    words = txt.split()
+    self.assertEquals(words, ["default","1","3.1","1","build-1",
+                              "RC1",
+                              "default","2","3.1","2","build-2"])
+
+  def test_tag_fileset_by_id_multiple_tags(self):
+    for tag in ["RC1","RC2","RC3"]:
+      ns = Namespace(path=self.path, id=1, tag=tag)
+      fob = StringIO()
+      fp_add_fileset_tags(ns, outfob=fob, errfob=fob)
+      self.assertEquals(fob.getvalue(), "")
+    outfob = StringIO()
+    ns = Namespace(path=self.path, tags=True, count=-1, start_at=1, properties=False)
+    errfob = StringIO()
+    fp_list_filesets(ns, outfob=outfob, errfob=errfob)
+    self.assertEquals(errfob.getvalue(), "")
+    txt = outfob.getvalue()
+    words = txt.split()
+    self.assertEquals(words, ["default","1","3.1","1","build-1",
+                              "RC1,RC2,RC3",
+                              "default","2","3.1","2","build-2"])
+
+  def test_tag_multiple_filesets_with_same_tag(self):
+    for fs_id in [1,2]:
+      ns = Namespace(path=self.path, id=fs_id, tag="RC1")
+      fob = StringIO()
+      fp_add_fileset_tags(ns, outfob=fob, errfob=fob)
+      self.assertEquals(fob.getvalue(), "")
+    outfob = StringIO()
+    ns = Namespace(path=self.path, tags=True, count=-1, start_at=1, properties=False)
+    errfob = StringIO()
+    fp_list_filesets(ns, outfob=outfob, errfob=errfob)
+    self.assertEquals(errfob.getvalue(), "")
+    txt = outfob.getvalue()
+    words = txt.split()
+    self.assertEquals(words, ["default","1","3.1","1","build-1",
+                              "RC1",
+                              "default","2","3.1","2","build-2",
+                              "RC1"])
+
+class TestFPAddFileSetPropertyOperations(unittest.TestCase):
+
+  def setUp(self):
+    self.path = "/tmp/fptool.%d" % (os.getpid())
+    ns = Namespace(path=self.path)
+    fp_init_repo(ns)
+    ns = Namespace(path=self.path, version="3.1", revision="1", name="build-1")
+    fob = StringIO()
+    fp_add_filesets(ns, outfob=fob)
+    self.assertEquals(fob.getvalue(), "")
+    ns = Namespace(path=self.path, version="3.1", revision="2", name="build-2")
+    fob = StringIO()
+    fp_add_filesets(ns, outfob=fob)
+    self.dest_path = "/tmp/tmp_file.{}".format(os.getpid())
+
+  def tearDown(self):
+    clear_tree(self.path)
+    try:
+      os.remove(self.dest_path)
+    except:
+      pass
+
+  def test_add_property_by_id(self):
+    ns = Namespace(path=self.path, id=1, name="TestDate", value="2015-10-31", update=False)
+    fob = StringIO()
+    fp_add_fileset_props(ns, outfob=fob, errfob=fob)
+    self.assertEquals(fob.getvalue(), "")
+    outfob = StringIO()
+    ns = Namespace(path=self.path, tags=False, count=-1, start_at=1, properties=True)
+    errfob = StringIO()
+    fp_list_filesets(ns, outfob=outfob, errfob=errfob)
+    self.assertEquals(errfob.getvalue(), "")
+    txt = outfob.getvalue()
+    words = txt.split()
+    self.assertEquals(words, ["default","1","3.1","1","build-1",
+                              "TestDate=2015-10-31",
+                              "default","2","3.1","2","build-2"])
+
+  def test_add_property_already_exists(self):
+    ns = Namespace(path=self.path, id=1, name="TestDate", value="2015-10-31", update=False)
+    fob = StringIO()
+    fp_add_fileset_props(ns, outfob=fob, errfob=fob)
+    self.assertEquals(fob.getvalue(), "")
+    errfob = StringIO()
+    fp_add_fileset_props(ns, outfob=fob, errfob=errfob)
+    self.assertEquals(fob.getvalue(), "")
+    txt = errfob.getvalue()
+    words = txt.split()
+    self.assertEquals(words, ["Fileset","1","already","has","property","TestDate"])
+
+  def test_add_property_and_update(self):
+    ns = Namespace(path=self.path, id=1, name="TestDate", value="2015-10-31", update=False)
+    fob = StringIO()
+    fp_add_fileset_props(ns, outfob=fob, errfob=fob)
+    self.assertEquals(fob.getvalue(), "")
+    ns = Namespace(path=self.path, id=1, name="TestDate", value="2015-10-29", update=True)
+    fp_add_fileset_props(ns, outfob=fob, errfob=fob)
+    self.assertEquals(fob.getvalue(), "")
+    errfob = StringIO()
+    ns = Namespace(path=self.path, tags=False, count=-1, start_at=1, properties=True)
+    fp_list_filesets(ns, outfob=fob, errfob=errfob)
+    self.assertEquals(errfob.getvalue(), "")
+    txt = fob.getvalue()
+    words = txt.split()
+    self.assertEquals(words, ["default","1","3.1","1","build-1",
+                              "TestDate=2015-10-29",
+                              "default","2","3.1","2","build-2"])
 
 if __name__ == "__main__":
   unittest.main()

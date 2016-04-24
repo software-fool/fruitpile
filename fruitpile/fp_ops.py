@@ -242,3 +242,18 @@ class Fruitpile(object):
     self.session.add(pa)
     self.session.commit()
     return True
+
+  def get_fileset(self, **kwargs):
+    uid = kwargs.get("uid")
+    fileset_id = kwargs.get("fileset_id", None)
+    name = kwargs.get("name", None)
+    self.perm_manager.check_permission(kwargs.get("uid"), Capability.LIST_FILESETS)
+    if not name and not fileset_id:
+      raise FPLNoFilesetSpecified
+    q = self.session.query(FileSet)
+    if name:
+      q = q.filter(FileSet.name == name)
+    if fileset_id:
+      q = q.filter(FileSet.id == fileset_id)
+    fss = q.all()
+    return fss
