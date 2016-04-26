@@ -80,8 +80,30 @@ def fp_add_fileset_props(ns, outfob=sys.stdout, errfob=sys.stderr):
   try:
     fp.add_fileset_property(uid=owner, fileset=fss[0], name=ns.name, value=ns.value, update=ns.update)
   except FPLPropertyExists:
-    print("Fileset 1 already has property {}".format(ns.name), file=errfob)
-  
+    print("Fileset id {0} already has property {1}".format(ns.id, ns.name), file=errfob)
+
+def fp_add_binfile_tags(ns, outfob=sys.stdout, errfob=sys.stderr):
+  fp = Fruitpile(ns.path)
+  owner = os.getuid()
+  fp.open()
+  bfs = fp.get_binfile(uid=owner, binfile_id=ns.id)
+  if bfs == []:
+    print("Artifact id {0} not found".format(ns.id), file=errfob)
+    return 1
+  fp.tag_binfile(uid=owner, binfile=bfs[0], tag=ns.tag)
+
+def fp_add_binfile_props(ns, outfob=sys.stdout, errfob=sys.stderr):
+  fp = Fruitpile(ns.path)
+  owner = os.getuid()
+  fp.open()
+  bfs = fp.get_binfile(uid=owner, binfile_id=ns.id)
+  if bfs == []:
+    print("Artifact id {0} not found".format(ns.id), file=errfob)
+    return 1
+  try:
+    fp.add_binfile_property(uid=owner, binfile=bfs[0], name=ns.name, value=ns.value, update=ns.update)
+  except FPLPropertyExists:
+    print("Artifact id {0} already has property {1}".format(ns.id, ns.name), file=errfob)
 
 def fp_add_file(ns, outfob=sys.stdout, errfob=sys.stderr):
   fp = Fruitpile(ns.path)
@@ -117,6 +139,11 @@ cksum: {{ item.checksum }}
   bfs = fp.list_files(uid=owner, count=ns.count, start_at=ns.start_at)
   for bf in bfs:
     print(template.render(item=bf), file=outfob)
+    if ns.tags:
+      print("  "+",".join(bf.tags(fp.session)), file=outfob)
+    if ns.properties:
+      for pk,pv in bf.properties(fp.session).items():
+        print("  {}={}".format(pk,pv), file=outfob)
   fp.close()
 
 def fp_transit_file(ns, outfob=sys.stdout, errfob=sys.stderr):
@@ -204,6 +231,8 @@ def fp_tool_main(args):
                                  help="Give a longer list of file information")
   parser_list_files.add_argument("-c", "--count", metavar="COUNT", default=-1, help="Limit results to COUNT")
   parser_list_files.add_argument("-s", "--start-at", metavar="START_AT", default=1, help="Start returning results from START_AT item")
+  parser_list_files.add_argument("-t", "--tags", action="store_true", help="Show tags for artifacts")
+  parser_list_files.add_argument("-p", "--properties", action="store_true", help="Show properties for artifacts")
   parser_list_files.set_defaults(func=fp_list_files)
 
   # transit file
@@ -231,6 +260,12 @@ def fp_tool_main(args):
   parser_add_fs_prop.add_argument("-v", "--value", required=True, help="Value of property to be added")
   parser_add_fs_prop.add_argument("-u", "--update", action='store_true', help="Update the property if it already exists")
   parser_add_fs_prop.set_defaults(func=fp_add_fileset_props)
+
+  # add tag to binfile
+  parser_tag_binfile = subparsers.add_parser("tag", help="tag an artifact")
+  parser_tag_binfile.add_argument("-i", "--id", type=int, required=True, help="Artifact id to add the tag to")
+  parser_tag_binfile.add_argument("-t", "--tag", required=True, help="Tag to add the artifact")
+  parser_tag_binfile.set_defaults(func=fp_add_binfile_tags)
 
   # server
   parser_serve = subparsers.add_parser("serve", help="Help for the serve command")

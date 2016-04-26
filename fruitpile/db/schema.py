@@ -261,6 +261,18 @@ class BinFile(Base):
   # the file and if so, what type.  If the file is already in a compressed
   # form then it won't be recompressed (typically used for text documents
   ztype = Column(String)
+
+  def tags(self, session):
+    tas = session.query(BinFileTag).filter(BinFileTag.binfile_id == self.id).all()
+    return [ta.tag.tag for ta in tas]
+
+  def properties(self, session):
+    pas = session.query(BinFileProp).filter(BinFileProp.binfile_id == self.id).all()
+    props={}
+    for pa in pas:
+      props[pa.prop.name] = pa.prop.value
+    return props
+
 #  comment_id = Column(Integer, ForeignKey('binfile_comments.id'), nullable=False)
 #  comments = relationship('BinFileComment', foreign_keys=[comment_id], back_populates='binfiles')
 
@@ -293,6 +305,31 @@ class PropAssoc(Base):
   def __repr__(self):
     return "<PropAssoc(%d,%d)>" % (self.prop_id, self.fileset_id)
 
+class BinFileTag(Base):
+  __tablename__ = "binfile_tags"
+  __table_args__ = (
+    PrimaryKeyConstraint('tag_id','binfile_id'),
+  )
+
+  tag_id = Column('tag_id', ForeignKey('tags.id'), primary_key=True)
+  tag = relationship('Tag')
+  binfile_id = Column('binfile_id', ForeignKey('binfiles.id'), primary_key=True)
+
+  def __repr__(self):
+    return "<BinFileTag(%d,%d)>" % (self.tag_id, self.fileset_id)
+
+class BinFileProp(Base):
+  __tablename__ = 'binfile_props'
+  __table_args__ = (
+    PrimaryKeyConstraint('prop_id','binfile_id'),
+  )
+
+  prop_id = Column('prop_id', ForeignKey('properties.id'))
+  prop = relationship('Property')
+  binfile_id = Column('binfile_id', ForeignKey('binfiles.id'))
+
+  def __repr__(self):
+    return "<BinFileProp(%d,%d)>" % (self.prop_id, self.binfile_id)
 
 def upgrade(engine, uid, username, path):
   Base.metadata.create_all(bind=engine)

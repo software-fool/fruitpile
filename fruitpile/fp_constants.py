@@ -63,7 +63,10 @@ _CAPABILITIES = [
   (10, "GET_FILES", "Permission to retrieve artifacts"),
   (11, "TAG_FILESET", "Permission to add tags to filesets"),
   (12, "ADD_FILESET_PROPERTY", "Permision to add a property to a fileset"),
-  (13, "UPDATE_FILESET_PROPERTY", "Permission to update an existing fileset property")]
+  (13, "UPDATE_FILESET_PROPERTY", "Permission to update an existing fileset property"),
+  (14, "TAG_BINFILE", "Permission to add tags to binary files"),
+  (15, "ADD_BINFILE_PROPERTY", "Permssion to add a property to an artifact"),
+  (16, "UPDATE_BINFILE_PROPERTY", "Permission to update an existing property on an artifact")]
 
 for perm_id, perm_name, perm_desc in _CAPABILITIES:
   Capability(perm_id, perm_name, perm_desc)

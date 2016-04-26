@@ -442,6 +442,95 @@ class TestTagAssocs(unittest.TestCase):
     self.assertEquals(rows[0].tag_id, tag.id)
     self.assertEquals(rows[0].fileset_id, self.fs.id)
 
+class TestPropAssoc(unittest.TestCase):
+
+  def setUp(self):
+    self.engine, self.session = setUpDatabase()
+    self.repo = Repo(name="default", path="/export/fruitpile/repo", repo_type="FileManager")
+    self.fs = FileSet(name="test-1", version="3.1", revision="1234", repo=self.repo)
+    self.prop = Property(name="Author", value="Dwight Jones")
+    self.session.add_all([self.repo,self.fs,self.prop])
+    self.session.commit()
+
+  def tearDown(self):
+    self.session.close()
+
+  def test_create_new_property_association(self):
+    prop_assoc = PropAssoc(prop_id=self.prop.id, fileset_id=self.fs.id)
+    self.session.add(prop_assoc)
+    self.session.commit()
+    rows = self.session.query(PropAssoc).all()
+    self.assertEquals(len(rows), 1)
+    self.assertEquals(rows[0].prop_id, self.prop.id)
+    self.assertEquals(rows[0].fileset_id, self.fs.id)
+
+
+class TestBinFileTag(unittest.TestCase):
+
+  def setUp(self):
+    self.engine, self.session = setUpDatabase()
+    self.repo = Repo(name="default", path="/export/fruitpile/repo", repo_type="FileManager")
+    self.fs = FileSet(name="test-1", version="3.1", revision="1234", repo=self.repo)
+    self.bf = BinFile(fileset=self.fs,
+                      name="test-1",
+                      path="path",
+                      primary=True,
+                      state=State(name="unverified"),
+                      create_date=datetime(2016,2,12),
+                      update_date=datetime(2016,2,12),
+                      source="buildbot",
+                      checksum="12345")
+    self.session.add_all([self.repo,self.fs,self.bf])
+    self.session.commit()
+
+  def tearDown(self):
+    self.session.close()
+
+  def test_create_new_binfile_tag(self):
+    tag = Tag(tag="TAG1")
+    self.session.add(tag)
+    self.session.commit()
+    binfile_tag = BinFileTag(tag_id=tag.id, binfile_id=self.bf.id)
+    self.session.add(binfile_tag)
+    self.session.commit()
+    rows = self.session.query(BinFileTag).all()
+    self.assertEquals(len(rows), 1)
+    self.assertEquals(rows[0].tag_id, tag.id)
+    self.assertEquals(rows[0].binfile_id, self.bf.id)
+
+
+class TestBinFileProp(unittest.TestCase):
+
+  def setUp(self):
+    self.engine, self.session = setUpDatabase()
+    self.repo = Repo(name="default", path="/export/fruitpile/repo", repo_type="FileManager")
+    self.fs = FileSet(name="test-1", version="3.1", revision="1234", repo=self.repo)
+    self.bf = BinFile(fileset=self.fs,
+                      name="test-1",
+                      path="path",
+                      primary=True,
+                      state=State(name="unverified"),
+                      create_date=datetime(2016,2,12),
+                      update_date=datetime(2016,2,12),
+                      source="buildbot",
+                      checksum="12345")
+    self.prop = Property(name="Author", value="Dwight Jones")
+    self.session.add_all([self.repo,self.fs,self.bf,self.prop])
+    self.session.commit()
+
+  def tearDown(self):
+    self.session.close()
+
+  def test_create_binfile_property(self):
+    binfile_prop = BinFileProp(prop_id=self.prop.id, binfile_id=self.bf.id)
+    self.session.add(binfile_prop)
+    self.session.commit()
+    rows = self.session.query(BinFileProp).all()
+    self.assertEquals(len(rows), 1)
+    self.assertEquals(rows[0].prop_id, self.prop.id)
+    self.assertEquals(rows[0].binfile_id, self.bf.id)
+
+
 
 if __name__ == "__main__":
   unittest.main()

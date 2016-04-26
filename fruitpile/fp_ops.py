@@ -257,3 +257,64 @@ class Fruitpile(object):
       q = q.filter(FileSet.id == fileset_id)
     fss = q.all()
     return fss
+
+  def tag_binfile(self, **kwargs):
+    uid = kwargs.get("uid")
+    bf = kwargs.get("binfile")
+    tag = kwargs.get("tag")
+    self.perm_manager.check_permission(uid, Capability.TAG_BINFILE)
+    tags = self.session.query(Tag).filter(Tag.tag == tag).all()
+    if tags == []:
+      tag = Tag(tag=tag)
+      self.session.add(tag)
+      self.session.commit()
+    else:
+      tag = tags[0]
+      existing_tags = bf.tags(self.session)
+      if tag.tag in existing_tags:
+        return False
+    binfile_tag = BinFileTag(tag_id=tag.id, binfile_id=bf.id)
+    self.session.add(binfile_tag)
+    self.session.commit()
+    return True
+
+  def add_binfile_property(self, **kwargs):
+    uid = kwargs.get("uid")
+    binfile = kwargs.get("binfile")
+    name = kwargs.get("name")
+    value = kwargs.get("value")
+    update = kwargs.get("update", False)
+    self.perm_manager.check_permission(uid, Capability.ADD_BINFILE_PROPERTY)
+    pas = self.session.query(BinFileProp).filter(BinFileProp.binfile_id == binfile.id).all()
+    for pa in pas:
+      prop = self.session.query(Property).filter(Property.id == pa.prop_id).one()
+      if prop.name == name:
+        if not update:
+          raise FPLPropertyExists(name)
+        self.perm_manager.check_permission(uid, Capability.UPDATE_BINFILE_PROPERTY)
+        prop.value = value
+        self.session.commit()
+        return True
+    prop = Property(name=name, value=value)
+    self.session.add(prop)
+    self.session.commit()
+    pa = BinFileProp(prop_id=prop.id, binfile_id=binfile.id)
+    self.session.add(pa)
+    self.session.commit()
+    return True
+
+  def get_binfile(self, **kwargs):
+    uid = kwargs.get("uid")
+    binfile_id = kwargs.get("binfile_id", None)
+    name = kwargs.get("name", None)
+    self.perm_manager.check_permission(kwargs.get("uid"), Capability.LIST_FILES)
+    if not name and not binfile_id:
+      raise FPLNoBinfileSpecified
+    q = self.session.query(BinFile)
+    if name:
+      q = q.filter(BinFile.name == name)
+    if binfile_id:
+      q = q.filter(BinFile.id == binfile_id)
+    bfs = q.all()
+    return bfs
+

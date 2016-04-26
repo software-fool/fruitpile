@@ -62,6 +62,8 @@ class TestFruitpileInitOperations(unittest.TestCase):
     rows = curs.fetchall()
     expected_tables = [
       "binfiles",
+      "binfile_props",
+      "binfile_tags",
       "comments",
       "filesets",
       "migrations",
@@ -150,9 +152,12 @@ class TestFruitpileOpenOperations(unittest.TestCase):
     self.assertEquals(Capability.TAG_FILESET, 11)
     self.assertEquals(Capability.ADD_FILESET_PROPERTY, 12)
     self.assertEquals(Capability.UPDATE_FILESET_PROPERTY, 13)
+    self.assertEquals(Capability.TAG_BINFILE, 14)
+    self.assertEquals(Capability.ADD_BINFILE_PROPERTY, 15)
+    self.assertEquals(Capability.UPDATE_BINFILE_PROPERTY, 16)
     session = fp.session
     perms = session.query(UserPermission).filter(UserPermission.user_id==1046).all()
-    self.assertEquals(len(perms), 13)
+    self.assertEquals(len(perms), 16)
 
   def test_reopen_existing_repo(self):
     fp1 = Fruitpile(self.store_path)
@@ -956,6 +961,147 @@ class TestProperty(unittest.TestCase):
     self.assertEquals(props[1].value, "2015-10-29")
     
 
+class TestBinFileTags(unittest.TestCase):
+
+  def setUp(self):
+    self.store_path = "/tmp/store%d" % (os.getpid())
+    clear_tree(self.store_path)
+    fp = Fruitpile(self.store_path)
+    fp.init(uid=1046, username="db")
+    fp.open()
+    self.fp = fp
+    fs = self.fp.add_new_fileset(name="test-1",
+                                 version="1",
+                                 revision="123",
+                                 uid=1046)
+    self.fs = fs
+    filename = "%s/data/example_file.txt" % (mydir)
+    self.bf = self.fp.add_file(
+        uid=1046,
+        source_file=filename,
+        fileset_id=fs.id,
+        name="requirements.txt",
+        path="deploy",
+        primary=True,
+        source="buildbot")
+    self.aux = self.fp.add_file(
+        uid=1046,
+        source_file=filename,
+        fileset_id=fs.id,
+        name="coverage-report.txt",
+        path="deploy",
+        primary=False,
+        source="buildbot")
+
+  def tearDown(self):
+    self.fp.close()
+    self.fp = None
+    clear_tree(self.store_path)
+
+  def test_create_new_binfile_tag(self):
+    self.fp.tag_binfile(uid=1046, binfile=self.bf, tag="RC1")
+    self.assertEquals(self.bf.tags(self.fp.session), ["RC1"])
+
+  def test_create_new_binfile_tag_no_permission(self):
+    with self.assertRaises(FPLPermissionDenied):
+      self.fp.tag_binfile(uid=1045, binfile=self.bf, tag="RC1")
+
+  def test_create_reapply_same_tag_binfile(self):
+    self.fp.tag_binfile(uid=1046, binfile=self.bf, tag="RC1")
+    self.fp.tag_binfile(uid=1046, binfile=self.bf, tag="RC1")
+    self.assertEquals(self.bf.tags(self.fp.session), ["RC1"])
+
+  def test_add_multiple_tags_to_binfile(self):
+    some_tags = ["RC1","RC2","RC3"]
+    for t in some_tags:
+      self.fp.tag_binfile(uid=1046, binfile=self.bf, tag=t)
+    self.assertEquals(sorted(self.bf.tags(self.fp.session)), some_tags)
+
+  def test_add_same_tag_to_multiple_binfiles(self):
+    tag = "RC1"
+    self.fp.tag_binfile(uid=1046, binfile=self.bf, tag=tag)
+    self.fp.tag_binfile(uid=1046, binfile=self.aux, tag=tag)
+    tags = self.fp.session.query(Tag).all()
+    self.assertEquals(len(tags), 1)
+
+
+class TestBinFileProperty(unittest.TestCase):
+
+  def setUp(self):
+    self.store_path = "/tmp/store%d" % (os.getpid())
+    clear_tree(self.store_path)
+    fp = Fruitpile(self.store_path)
+    fp.init(uid=1046, username="db")
+    fp.open()
+    self.fp = fp
+    fs = self.fp.add_new_fileset(name="test-1",
+                                 version="1",
+                                 revision="123",
+                                 uid=1046)
+    self.fs = fs
+    filename = "%s/data/example_file.txt" % (mydir)
+    self.bf = self.fp.add_file(
+        uid=1046,
+        source_file=filename,
+        fileset_id=fs.id,
+        name="requirements.txt",
+        path="deploy",
+        primary=True,
+        source="buildbot")
+    self.aux = self.fp.add_file(
+        uid=1046,
+        source_file=filename,
+        fileset_id=fs.id,
+        name="coverage-report.txt",
+        path="deploy",
+        primary=False,
+        source="buildbot")
+
+  def tearDown(self):
+    self.fp.close()
+    self.fp = None
+    clear_tree(self.store_path)
+
+  def test_add_new_binfile_property(self):
+    self.fp.add_binfile_property(uid=1046, binfile=self.bf, name="TestDate", value="2015-10-31")
+    self.assertEquals(self.bf.properties(self.fp.session), {"TestDate":"2015-10-31"})
+
+  def test_add_new_binfile_property_no_permission(self):
+    with self.assertRaises(FPLPermissionDenied):
+      self.fp.add_binfile_property(uid=1045, binfile=self.bf, name="TestDate", value="2015-10-31")
+
+  def test_add_binfile_property_already_exists(self):
+    self.fp.add_binfile_property(uid=1046, binfile=self.bf, name="TestDate", value="2015-10-31")
+    self.assertEquals(self.bf.properties(self.fp.session), {"TestDate":"2015-10-31"})
+    with self.assertRaises(FPLPropertyExists):
+      self.fp.add_binfile_property(uid=1046, binfile=self.bf, name="TestDate", value="2015-10-29")
+    self.assertEquals(self.bf.properties(self.fp.session), {"TestDate":"2015-10-31"})
+
+  def test_update_binfile_property(self):
+    self.fp.add_binfile_property(uid=1046, binfile=self.bf, name="TestDate", value="2015-10-31")
+    self.assertEquals(self.bf.properties(self.fp.session), {"TestDate":"2015-10-31"})
+    self.fp.add_binfile_property(uid=1046, binfile=self.bf, name="TestDate", value="2015-10-29", update=True)
+    self.assertEquals(self.bf.properties(self.fp.session), {"TestDate":"2015-10-29"})
+
+  def test_update_binfile_property_permission_denied(self):
+    self.fp.add_binfile_property(uid=1046, binfile=self.bf, name="TestDate", value="2015-10-31")
+    self.assertEquals(self.bf.properties(self.fp.session), {"TestDate":"2015-10-31"})
+    with self.assertRaises(FPLPermissionDenied):
+      self.fp.add_binfile_property(uid=1045, binfile=self.bf, name="TestDate", value="2015-10-29", update=True)
+
+  def test_add_same_property_name_to_different_files(self):
+    self.fp.add_binfile_property(uid=1046, binfile=self.bf, name="TestDate", value="2015-10-31")
+    self.assertEquals(self.bf.properties(self.fp.session), {"TestDate":"2015-10-31"})
+    self.fp.add_binfile_property(uid=1046, binfile=self.aux, name="TestDate", value="2015-10-29")
+    self.assertEquals(self.aux.properties(self.fp.session), {"TestDate":"2015-10-29"})
+    pas = self.fp.session.query(BinFileProp).all()
+    self.assertEquals(len(pas), 2)
+    props = self.fp.session.query(Property).all()
+    self.assertEquals(len(props), 2)
+    self.assertEquals(props[0].name, "TestDate")
+    self.assertEquals(props[0].value, "2015-10-31")
+    self.assertEquals(props[1].name, "TestDate")
+    self.assertEquals(props[1].value, "2015-10-29")
 
 if __name__ == "__main__":
   unittest.main()

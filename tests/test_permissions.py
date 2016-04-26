@@ -92,7 +92,8 @@ class TestPermissionManager(unittest.TestCase):
                            "WITHDRAW_ARTIFACT","BEGIN_TESTING",
                            "RELEASE_ARTIFACT","GET_FILES",
                            "TAG_FILESET","ADD_FILESET_PROPERTY",
-                           "UPDATE_FILESET_PROPERTY"]))
+                           "UPDATE_FILESET_PROPERTY","TAG_BINFILE",
+                           "ADD_BINFILE_PROPERTY","UPDATE_BINFILE_PROPERTY"]))
 
   def test_check_permission_with_uid_no_permissions(self):
     build_permissions_table(self)
