@@ -216,15 +216,15 @@ doesn't merge easily so managing configuration is harder.
 
 ## Operations
 
-* get file (Apr-2016: done)
+* (Apt-2016: done) get file
 * move file (locations)
 * archive files
 * change file type (auxilliary->primary/primary->auxilliary)
 
 ## Tags and Properties
 
-* (Apr-2016) Tags and properties enabled for FileSets
-* Tags and properties on binfiles
+* (Apr-2016: done) Tags and properties enabled for FileSets
+* (Apr-2016: done) Tags and properties on binfiles
 
 ## command line tool
 
@@ -234,9 +234,11 @@ doesn't merge easily so managing configuration is harder.
 
 ## REST API
 
-* (Apr-2016) Ability to list files and filesets as well as ability to
+* (Apr-2016: done) Ability to list files and filesets as well as ability to
   create a fileset.
-* Add files, search
+* (Apr-2016: done) Add filesets
+* Add files
+* Search
 
 ## Load test
 
