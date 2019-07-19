@@ -17,18 +17,41 @@ from __future__ import print_function
 import unittest
 import io
 import os
-import sys
 import sqlite3
-import pprint
 from datetime import datetime, timedelta
 
-mydir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
-sys.path.append(os.path.dirname(mydir))
-
-from fruitpile import Fruitpile, FPLExists, FPLConfiguration, FPLRepoInUse, FPLFileSetExists, FPLBinFileExists, FPLSourceFileNotFound, FPLSourceFilePermissionDenied, FPLPermissionDenied, FPLInvalidStateTransition, FPLInvalidState, FPLBinFileNotExists, FPLInvalidTargetForStateChange, FPLFileExists, FPLCannotTransitionState, FPLPropertyExists
-from fruitpile.db.schema import *
+from fruitpile import (
+  Fruitpile,
+  FPLExists,
+  FPLConfiguration,
+  FPLRepoInUse,
+  FPLFileSetExists,
+  FPLBinFileExists,
+  FPLSourceFileNotFound,
+  FPLSourceFilePermissionDenied,
+  FPLPermissionDenied,
+  FPLInvalidStateTransition,
+  FPLInvalidState,
+  FPLBinFileNotExists,
+  FPLInvalidTargetForStateChange,
+  FPLFileExists,
+  FPLCannotTransitionState,
+  FPLPropertyExists)
+from fruitpile.db.schema import (
+  State,
+  BinFile,
+  User,
+  UserPermission,
+  Tag,
+  Property,
+  PropAssoc,
+  BinFileProp,
+  downgrade)
 from fruitpile.fp_constants import Capability
 from fruitpile.fp_state import StateMachine
+
+
+mydir = os.path.dirname(__file__)
 
 # Destroys the entire tree of data (python equivalent of rm -rf)
 def clear_tree(path):
@@ -40,6 +63,7 @@ def clear_tree(path):
         if os.path.exists(d):
           os.rmdir(d)
       os.rmdir(root)
+
 
 class TestFruitpileInitOperations(unittest.TestCase):
 
@@ -156,7 +180,8 @@ class TestFruitpileOpenOperations(unittest.TestCase):
     self.assertEqual(Capability.ADD_BINFILE_PROPERTY, 15)
     self.assertEqual(Capability.UPDATE_BINFILE_PROPERTY, 16)
     session = fp.session
-    perms = session.query(UserPermission).filter(UserPermission.user_id==1046).all()
+    perms = session.query(UserPermission).filter(
+      UserPermission.user_id==1046).all()
     self.assertEqual(len(perms), 16)
 
   def test_reopen_existing_repo(self):
@@ -178,6 +203,7 @@ class TestFruitpileOpenOperations(unittest.TestCase):
       fp.open()
     os.chmod(self.store_path, 0o700)
 
+
 class TestFruitpileAddFileSetOperations(unittest.TestCase):
 
   def setUp(self):
@@ -197,50 +223,62 @@ class TestFruitpileAddFileSetOperations(unittest.TestCase):
     self.assertEqual(filesets, [])
 
   def _add_n_filesets(self, n):
-    for i in range(1,n+1):
-      self.fp.add_new_fileset(uid=1046, name="test-{}".format(i), version="3.1", revision="{}".format(1))
+    for i in range(1,n + 1):
+      self.fp.add_new_fileset(uid=1046,
+                              name="test-{}".format(i),
+                              version="3.1",
+                              revision="{}".format(1))
 
   def test_list_limit_filesets(self):
     self._add_n_filesets(10)
     filesets = self.fp.list_filesets(uid=1046, count=3)
     self.assertEqual(len(filesets), 3)
     for i in range(1,4):
-      self.assertEqual(filesets[i-1].name, "test-{}".format(i))
+      self.assertEqual(filesets[i - 1].name, "test-{}".format(i))
 
   def test_list_start_at_filesets(self):
     self._add_n_filesets(10)
     filesets = self.fp.list_filesets(uid=1046, start_at=7)
     self.assertEqual(len(filesets), 3)
     for i in range(3):
-      self.assertEqual(filesets[i].name, "test-{}".format(i+8))
+      self.assertEqual(filesets[i].name, "test-{}".format(i + 8))
 
   def test_list_start_at_limit_filesets(self):
     self._add_n_filesets(10)
     filesets = self.fp.list_filesets(uid=1046, count=3, start_at=4)
     self.assertEqual(len(filesets), 3)
     for i in range(3):
-      self.assertEqual(filesets[i].name, "test-{}".format(i+5))
+      self.assertEqual(filesets[i].name, "test-{}".format(i + 5))
 
   def test_add_new_fileset(self):
-    fileset = self.fp.add_new_fileset(name="test-1", version="3.1", revision="1234", uid=1046)
+    fileset = self.fp.add_new_fileset(name="test-1",
+                                      version="3.1",
+                                      revision="1234",
+                                      uid=1046)
     self.assertEqual(str(fileset), "<FileSet(test-1 in default)>")
     filesets = self.fp.list_filesets(uid=1046)
     self.assertEqual(len(filesets), 1)
     self.assertEqual(filesets[0], fileset)
 
   def test_add_duplicate_fileset(self):
-    fs1 = self.fp.add_new_fileset(name="test-1", version="3.1", revision="1234", uid=1046)
+    fs1 = self.fp.add_new_fileset(name="test-1",
+                                  version="3.1",
+                                  revision="1234",
+                                  uid=1046)
     self.assertEqual(str(fs1), "<FileSet(test-1 in default)>")
     with self.assertRaises(FPLFileSetExists):
-      fs2 = self.fp.add_new_fileset(name="test-1", version="3.1", revision="1234", uid=1046)
+      self.fp.add_new_fileset(name="test-1",
+                              version="3.1", revision="1234", uid=1046)
 
   def test_add_multiple_filesets(self):
     fss1 = []
     for i in range(10):
-      fss1.append(self.fp.add_new_fileset(name="test-%d" % (i), version="0.1", revision="%s" % (i), uid=1046))
+      fss1.append(self.fp.add_new_fileset(name="test-%d" % (i),
+                                          version="0.1",
+                                          revision="%s" % (i),
+                                          uid=1046))
     fss2 = self.fp.list_filesets(uid=1046)
     self.assertEqual(fss1, fss2)
-
 
 
 class TestFruitpileBinFileOperations(unittest.TestCase):
@@ -276,8 +314,8 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
     bfs = self.fp.list_files(uid=1046)
     self.assertEqual(len(bfs), 1)
     self.assertEqual(bfs[0], bf)
-    self.assertLessEqual(datetime.now()-bf.create_date, timedelta(seconds=1))
-    self.assertLessEqual(datetime.now()-bf.update_date, timedelta(seconds=1))
+    self.assertLessEqual(datetime.now() - bf.create_date, timedelta(seconds=1))
+    self.assertLessEqual(datetime.now() - bf.update_date, timedelta(seconds=1))
 
   def test_add_multiple_files_to_fileset(self):
     bfs0 = self.fp.list_files(uid=1046)
@@ -341,7 +379,7 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
     for i in range(3):
       fss.append(self.fp.add_new_fileset(name="test-%d" % (i),
                                          version="%s" % (i),
-                                         revision="%s" % (123+i),
+                                         revision="%s" % (123 + i),
                                          uid=1046))
     bfs2 = []
     filename = "%s/data/example_file.txt" % (mydir)
@@ -349,21 +387,24 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
       bfs2.append(self.fp.add_file(
           uid=1046,
           source_file=filename,
-          fileset_id = fss[j % 3].id,
+          fileset_id=fss[j % 3].id,
           name="requirements-%d.txt" % (j),
           path="deploy",
           primary=True,
           source="buildbot")
-              )
+      )
     self.assertEqual(len(bfs2), 12)
     bfs3 = self.fp.list_files(uid=1046)
     self.assertEqual(bfs2, bfs3)
 
   def _add_n_filesets_m_files_each(self, n, m):
-    for i in range(1, n+1):
-      self.fp.add_new_fileset(uid=1046, name="test-{}".format(i), version="3.1", revision="{}".format(1))
+    for i in range(1, n + 1):
+      self.fp.add_new_fileset(uid=1046,
+                              name="test-{}".format(i),
+                              version="3.1",
+                              revision="{}".format(1))
     filename = "%s/data/example_file.txt" % (mydir)
-    for i in range(1, m+1):
+    for i in range(1, m + 1):
       self.fp.add_file(uid=1046,
                        source_file=filename,
                        fileset_id=1,
@@ -377,28 +418,28 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
     bfs = self.fp.list_files(uid=1046)
     self.assertEqual(len(bfs), 10)
     for i in range(10):
-      self.assertEqual(bfs[i].name, "artifact-{}.txt".format(i+1))
+      self.assertEqual(bfs[i].name, "artifact-{}.txt".format(i + 1))
 
   def test_list_count_files(self):
     self._add_n_filesets_m_files_each(1, 10)
     bfs = self.fp.list_files(uid=1046, count=3)
     self.assertEqual(len(bfs), 3)
     for i in range(3):
-      self.assertEqual(bfs[i].name, "artifact-{}.txt".format(i+1))
+      self.assertEqual(bfs[i].name, "artifact-{}.txt".format(i + 1))
 
   def test_list_start_at_files(self):
     self._add_n_filesets_m_files_each(1, 10)
     bfs = self.fp.list_files(uid=1046, start_at=7)
     self.assertEqual(len(bfs), 3)
     for i in range(3):
-      self.assertEqual(bfs[i].name, "artifact-{}.txt".format(i+8))
+      self.assertEqual(bfs[i].name, "artifact-{}.txt".format(i + 8))
 
   def test_list_count_and_start_at_files(self):
     self._add_n_filesets_m_files_each(1, 10)
     bfs = self.fp.list_files(uid=1046, start_at=4, count=3)
     self.assertEqual(len(bfs), 3)
     for i in range(3):
-      self.assertEqual(bfs[i].name, "artifact-{}.txt".format(i+5))
+      self.assertEqual(bfs[i].name, "artifact-{}.txt".format(i + 5))
 
   def test_add_same_file_and_path_twice_to_same_file_set(self):
     bfs0 = self.fp.list_files(uid=1046)
@@ -415,20 +456,20 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
     bf1 = self.fp.add_file(
         uid=1046,
         source_file=filename,
-        fileset_id = fs.id,
+        fileset_id=fs.id,
         name="requirements.txt",
         path="deploy",
         primary=True,
         source="buildbot")
     with self.assertRaises(FPLBinFileExists):
-      bf2 = self.fp.add_file(
-          uid=1046,
-          source_file=filename,
-          fileset_id = fs2.id,
-          name="requirements.txt",
-          path="deploy",
-          primary=True,
-          source="buildbot")
+      self.fp.add_file(
+        uid=1046,
+        source_file=filename,
+        fileset_id=fs2.id,
+        name="requirements.txt",
+        path="deploy",
+        primary=True,
+        source="buildbot")
     bfs1 = self.fp.list_files(uid=1046)
     self.assertEqual(len(bfs1), 1)
     self.assertEqual(bfs1[0], bf1)
@@ -444,20 +485,20 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
     bf1 = self.fp.add_file(
         uid=1046,
         source_file=filename,
-        fileset_id = fs.id,
+        fileset_id=fs.id,
         name="requirements.txt",
         path="deploy",
         primary=True,
         source="buildbot")
     with self.assertRaises(FPLBinFileExists):
-      bf2 = self.fp.add_file(
-          uid=1046,
-          source_file = filename,
-          fileset_id = fs.id,
-          name ="requirements.txt",
-          path="deploy1",
-          primary=True,
-          source="buildbot")
+      self.fp.add_file(
+        uid=1046,
+        source_file=filename,
+        fileset_id=fs.id,
+        name="requirements.txt",
+        path="deploy1",
+        primary=True,
+        source="buildbot")
     bfs1 = self.fp.list_files(uid=1046)
     self.assertEqual(len(bfs1), 1)
     self.assertEqual(bfs1[0], bf1)
@@ -469,14 +510,14 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
                                  uid=1046)
     filename = "%s/data/example_file-1.txt" % (mydir)
     with self.assertRaises(FPLSourceFileNotFound):
-      bf = self.fp.add_file(
-          uid=1046,
-          source_file=filename,
-          fileset_id = fs.id,
-          name="requirements.txt",
-          path="deploy",
-          primary=True,
-          source="buildbot")
+      self.fp.add_file(
+        uid=1046,
+        source_file=filename,
+        fileset_id=fs.id,
+        name="requirements.txt",
+        path="deploy",
+        primary=True,
+        source="buildbot")
 
   def test_add_unreadable_file(self):
     fs = self.fp.add_new_fileset(name="test-1",
@@ -488,20 +529,20 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
     fob.close()
     os.chmod(unreadable_file, 0o000)
     with self.assertRaises(FPLSourceFilePermissionDenied):
-      bf = self.fp.add_file(
-          uid=1046,
-          source_file=unreadable_file,
-          fileset_id = fs.id,
-          name="requirements.txt",
-          path="deploy",
-          primary=True,
-          source="buildbot")
+      self.fp.add_file(
+        uid=1046,
+        source_file=unreadable_file,
+        fileset_id=fs.id,
+        name="requirements.txt",
+        path="deploy",
+        primary=True,
+        source="buildbot")
     os.chmod(unreadable_file, 0o644)
     os.remove(unreadable_file)
 
   def test_add_fileset_without_permission(self):
     with self.assertRaises(FPLPermissionDenied):
-      fs = self.fp.add_new_fileset(name="test-1", uid=1047)
+      self.fp.add_new_fileset(name="test-1", uid=1047)
 
   def test_add_fileset_and_file_without_file_permission(self):
     session = self.fp.session
@@ -517,20 +558,22 @@ class TestFruitpileBinFileOperations(unittest.TestCase):
                                  uid=1047)
     filename = "%s/data/example_file.txt" % (mydir)
     with self.assertRaises(FPLPermissionDenied):
-      bf = self.fp.add_file(
+      self.fp.add_file(
         uid=1047,
         source_file=filename,
-        fileset_id = fs.id,
+        fileset_id=fs.id,
         name="requirements.txt",
         path="deploy",
         primary=True,
         source="buildbot")
+
 
 def state_machine_callback_helper(uid, perm_man, old_state, new_state, obj):
   obj.called_back_uid = uid
   obj.called_back_perm_man = perm_man
   obj.called_back_old_state = old_state
   obj.called_back_new_state = new_state
+
 
 class TestFruitpileStateMachine(unittest.TestCase):
 
@@ -552,14 +595,16 @@ class TestFruitpileStateMachine(unittest.TestCase):
 
   def test_create_state_machine(self):
     sm = StateMachine.create_state_machine(self.fp.session)
-    untested_state = self.fp.session.query(State).filter(State.name == "untested").first()
+    untested_state = self.fp.session.query(State).filter(
+      State.name == "untested").first()
     self.assertEqual(sm.state, untested_state.name)
     self.assertEqual(len(sm._transitions), 6)
     untested_trans = sm._transitions[sm.state]
     self.assertEqual(len(untested_trans), 2)
     self.assertTrue("testing" in untested_trans)
     self.assertTrue("withdrawn" in untested_trans)
-    self.assertTrue(untested_trans["testing"].capability, Capability.BEGIN_TESTING)
+    self.assertTrue(untested_trans["testing"].capability,
+                    Capability.BEGIN_TESTING)
     self.assertEqual(sm.state_id, untested_state.id)
 
   def test_transition_from_one_state_to_another(self):
@@ -586,24 +631,30 @@ class TestFruitpileStateMachine(unittest.TestCase):
   def test_illegal_transition_1(self):
     sm = StateMachine.create_state_machine(self.fp.session)
     with self.assertRaises(FPLInvalidStateTransition):
-      new_state = sm.transit(1046, self.fp.perm_manager, "untested", "approved", self)
+      sm.transit(1046, self.fp.perm_manager,
+                 "untested", "approved", self)
 
   def test_illegal_transition_2(self):
     sm = StateMachine.create_state_machine(self.fp.session)
-    new_state = sm.transit(1046, self.fp.perm_manager, "untested", "testing", {"obj":self})
+    new_state = sm.transit(1046, self.fp.perm_manager,
+                           "untested", "testing", {"obj":self})
     with self.assertRaises(FPLInvalidStateTransition):
-      new_state = sm.transit(1046, self.fp.perm_manager, "testing", "approved", {"obj":self})
+      sm.transit(1046, self.fp.perm_manager,
+                 "testing", "approved", {"obj":self})
 
   def test_illegal_transition_3(self):
     sm = StateMachine.create_state_machine(self.fp.session)
-    new_state = sm.transit(1046, self.fp.perm_manager, "untested", "testing", {"obj":self})
+    new_state = sm.transit(1046, self.fp.perm_manager,
+                           "untested", "testing", {"obj":self})
     with self.assertRaises(FPLInvalidStateTransition):
-      new_state = sm.transit(1046, self.fp.perm_manager, "testing", "untested", {"obj":self})
+      sm.transit(1046, self.fp.perm_manager,
+                 "testing", "untested", {"obj":self})
 
   def test_user_without_permission_to_transition_state(self):
     sm = StateMachine.create_state_machine(self.fp.session)
     with self.assertRaises(FPLPermissionDenied):
-      new_state = sm.transit(1047, self.fp.perm_manager, "untested", "testing", {"obj":self})
+      sm.transit(1047, self.fp.perm_manager,
+                 "untested", "testing", {"obj":self})
 
 
 class TestFruitpileStateTransitOperations(unittest.TestCase):
@@ -640,7 +691,9 @@ class TestFruitpileStateTransitOperations(unittest.TestCase):
     clear_tree(self.store_path)
 
   def test_create_file_and_transit_through_api(self):
-    bf = self.fp.transit_file(uid=1046, file_id=self.bf.id, req_state="testing")
+    bf = self.fp.transit_file(uid=1046,
+                              file_id=self.bf.id,
+                              req_state="testing")
     self.assertEqual(bf.state.name, "testing")
     self.fp.session.rollback()
     bfs = self.fp.session.query(BinFile).all()
@@ -651,25 +704,31 @@ class TestFruitpileStateTransitOperations(unittest.TestCase):
 
   def test_create_file_and_transit_through_api_invalid_state(self):
     with self.assertRaises(FPLInvalidStateTransition):
-      bf = self.fp.transit_file(uid=1046, file_id=self.bf.id, req_state="approved")
+      self.fp.transit_file(uid=1046,
+                           file_id=self.bf.id,
+                           req_state="approved")
     self.assertEqual(self.bf.state_id, 1)
     self.assertEqual(self.bf.update_date, self.bf.create_date)
 
   def test_create_file_and_transit_to_unknown_state(self):
     with self.assertRaises(FPLInvalidState):
-      bf = self.fp.transit_file(uid=1046, file_id=self.bf.id, req_state="happy-birthday")
+      self.fp.transit_file(uid=1046,
+                           file_id=self.bf.id,
+                           req_state="happy-birthday")
     self.assertEqual(self.bf.state_id, 1)
     self.assertEqual(self.bf.update_date, self.bf.create_date)
 
   def test_create_file_and_try_transit_without_permission(self):
     with self.assertRaises(FPLPermissionDenied):
-      bf = self.fp.transit_file(uid=1047, file_id=self.bf.id, req_state="testing")
+      self.fp.transit_file(uid=1047, file_id=self.bf.id, req_state="testing")
     self.assertEqual(self.bf.state_id, 1)
     self.assertEqual(self.bf.update_date, self.bf.create_date)
 
   def test_create_file_and_try_to_transit_unknown_file(self):
     with self.assertRaises(FPLBinFileNotExists):
-      bf = self.fp.transit_file(uid=1046, file_id=self.bf.id+1, req_state="testing")
+      self.fp.transit_file(uid=1046,
+                           file_id=self.bf.id + 1,
+                           req_state="testing")
     self.assertEqual(self.bf.update_date, self.bf.create_date)
 
   def test_attempt_to_transit_an_auxilliary_file(self):
@@ -686,10 +745,13 @@ class TestFruitpileStateTransitOperations(unittest.TestCase):
     self.assertEqual(self.bf.update_date, self.bf.create_date)
 
   def test_transit_file_without_accompanying_auxilliary_file(self):
-    bf = self.fp.transit_file(uid=1046, file_id=self.bf.id, req_state="testing")
+    bf = self.fp.transit_file(uid=1046,
+                              file_id=self.bf.id,
+                              req_state="testing")
     self.assertEqual(bf.state.name, "testing")
     with self.assertRaises(FPLCannotTransitionState):
-      bf = self.fp.transit_file(uid=1046, file_id=self.bf.id, req_state="tested")
+      bf = self.fp.transit_file(uid=1046,
+                                file_id=self.bf.id, req_state="tested")
 
   def test_transit_file_with_accompanying_auxilliary_file(self):
     af = self.fp.add_file(
@@ -700,11 +762,13 @@ class TestFruitpileStateTransitOperations(unittest.TestCase):
         path="deploy",
         primary=False,
         source="buildbot")
-    bf = self.fp.transit_file(uid=1046, file_id=self.bf.id, req_state="testing")
+    bf = self.fp.transit_file(uid=1046,
+                              file_id=self.bf.id,
+                              req_state="testing")
     self.assertEqual(bf.state.name, "testing")
     bf = self.fp.transit_file(uid=1046, file_id=self.bf.id, req_state="tested")
     self.assertEqual(bf.state.name, "tested")
-      
+
 
 class TestFruitpileGetFileFromRepo(unittest.TestCase):
 
@@ -754,7 +818,7 @@ class TestFruitpileGetFileFromRepo(unittest.TestCase):
   def test_get_file_from_file_store_unknown_id(self):
     to_file = "/tmp/got_file.%d" % (os.getpid())
     with self.assertRaises(FPLBinFileNotExists):
-      self.fp.get_file(uid=1046, file_id=self.aux.id+1, to_file=to_file)
+      self.fp.get_file(uid=1046, file_id=self.aux.id + 1, to_file=to_file)
 
   def test_get_aux_file_from_store(self):
     to_file = "/tmp/got_file.%d" % (os.getpid())
@@ -769,6 +833,7 @@ class TestFruitpileGetFileFromRepo(unittest.TestCase):
     self.fp.get_file(uid=1046, file_id=self.bf.id, to_file=to_file)
     with self.assertRaises(FPLFileExists):
       self.fp.get_file(uid=1046, file_id=self.aux.id, to_file=to_file)
+
 
 class TestTransitionWithTransitionFunction(unittest.TestCase):
 
@@ -809,6 +874,7 @@ class TestTransitionWithTransitionFunction(unittest.TestCase):
   def test_check_file_with_file_name_exists(self):
     sm = StateMachine.create_state_machine(self.fp.session)
     new_state = sm.transit
+
 
 class TestTags(unittest.TestCase):
 
@@ -916,40 +982,61 @@ class TestProperty(unittest.TestCase):
     clear_tree(self.store_path)
 
   def test_add_new_property(self):
-    self.fp.add_fileset_property(uid=1046, fileset=self.fs, name="TestDate", value="2015-10-31")
-    self.assertEqual(self.fs.properties(self.fp.session), {"TestDate":"2015-10-31"})
+    self.fp.add_fileset_property(uid=1046,
+                                 fileset=self.fs,
+                                 name="TestDate",
+                                 value="2015-10-31")
+    self.assertEqual(self.fs.properties(self.fp.session),
+                     {"TestDate":"2015-10-31"})
 
   def test_add_new_property_no_permission(self):
     with self.assertRaises(FPLPermissionDenied):
-      self.fp.add_fileset_property(uid=1045, fileset=self.fs, name="TestDate", value="2015-10-31")
+      self.fp.add_fileset_property(uid=1045, fileset=self.fs,
+                                   name="TestDate", value="2015-10-31")
 
   def test_add_property_already_exists(self):
-    self.fp.add_fileset_property(uid=1046, fileset=self.fs, name="TestDate", value="2015-10-31")
-    self.assertEqual(self.fs.properties(self.fp.session), {"TestDate":"2015-10-31"})
+    self.fp.add_fileset_property(uid=1046, fileset=self.fs,
+                                 name="TestDate", value="2015-10-31")
+    self.assertEqual(self.fs.properties(self.fp.session),
+                     {"TestDate":"2015-10-31"})
     with self.assertRaises(FPLPropertyExists):
-      self.fp.add_fileset_property(uid=1046, fileset=self.fs, name="TestDate", value="2015-10-29")
-    self.assertEqual(self.fs.properties(self.fp.session), {"TestDate":"2015-10-31"})
+      self.fp.add_fileset_property(uid=1046, fileset=self.fs,
+                                   name="TestDate", value="2015-10-29")
+    self.assertEqual(self.fs.properties(self.fp.session),
+                     {"TestDate":"2015-10-31"})
 
   def test_update_property(self):
-    self.fp.add_fileset_property(uid=1046, fileset=self.fs, name="TestDate", value="2015-10-31")
-    self.assertEqual(self.fs.properties(self.fp.session), {"TestDate":"2015-10-31"})
-    self.fp.add_fileset_property(uid=1046, fileset=self.fs, name="TestDate", value="2015-10-29", update=True)
-    self.assertEqual(self.fs.properties(self.fp.session), {"TestDate":"2015-10-29"})
+    self.fp.add_fileset_property(uid=1046, fileset=self.fs,
+                                 name="TestDate", value="2015-10-31")
+    self.assertEqual(self.fs.properties(self.fp.session),
+                     {"TestDate":"2015-10-31"})
+    self.fp.add_fileset_property(uid=1046, fileset=self.fs,
+                                 name="TestDate", value="2015-10-29",
+                                 update=True)
+    self.assertEqual(self.fs.properties(self.fp.session),
+                     {"TestDate":"2015-10-29"})
 
   def test_update_property_permission_denied(self):
-    self.fp.add_fileset_property(uid=1046, fileset=self.fs, name="TestDate", value="2015-10-31")
-    self.assertEqual(self.fs.properties(self.fp.session), {"TestDate":"2015-10-31"})
+    self.fp.add_fileset_property(uid=1046, fileset=self.fs,
+                                 name="TestDate", value="2015-10-31")
+    self.assertEqual(self.fs.properties(self.fp.session),
+                     {"TestDate":"2015-10-31"})
     with self.assertRaises(FPLPermissionDenied):
-      self.fp.add_fileset_property(uid=1045, fileset=self.fs, name="TestDate", value="2015-10-29", update=True)
+      self.fp.add_fileset_property(uid=1045, fileset=self.fs,
+                                   name="TestDate", value="2015-10-29",
+                                   update=True)
 
   def test_add_same_property_name_with_different_values_to_different_filesets(self):
     fs = self.fp.add_new_fileset(name="test-2",
                                  version="1",
                                  revision="123",
                                  uid=1046)
-    self.fp.add_fileset_property(uid=1046, fileset=self.fs, name="TestDate", value="2015-10-31")
-    self.assertEqual(self.fs.properties(self.fp.session), {"TestDate":"2015-10-31"})
-    self.fp.add_fileset_property(uid=1046, fileset=fs, name="TestDate", value="2015-10-29")
+    self.fp.add_fileset_property(uid=1046, fileset=self.fs,
+                                 name="TestDate", value="2015-10-31")
+    self.assertEqual(self.fs.properties(self.fp.session),
+                     {"TestDate":"2015-10-31"})
+    self.fp.add_fileset_property(uid=1046, fileset=fs,
+                                 name="TestDate", value="2015-10-29")
     self.assertEqual(fs.properties(self.fp.session), {"TestDate":"2015-10-29"})
     pas = self.fp.session.query(PropAssoc).all()
     self.assertEqual(len(pas), 2)
@@ -959,7 +1046,7 @@ class TestProperty(unittest.TestCase):
     self.assertEqual(props[0].value, "2015-10-31")
     self.assertEqual(props[1].name, "TestDate")
     self.assertEqual(props[1].value, "2015-10-29")
-    
+
 
 class TestBinFileTags(unittest.TestCase):
 
@@ -1063,37 +1150,57 @@ class TestBinFileProperty(unittest.TestCase):
     clear_tree(self.store_path)
 
   def test_add_new_binfile_property(self):
-    self.fp.add_binfile_property(uid=1046, binfile=self.bf, name="TestDate", value="2015-10-31")
-    self.assertEqual(self.bf.properties(self.fp.session), {"TestDate":"2015-10-31"})
+    self.fp.add_binfile_property(uid=1046, binfile=self.bf,
+                                 name="TestDate", value="2015-10-31")
+    self.assertEqual(self.bf.properties(self.fp.session),
+                     {"TestDate":"2015-10-31"})
 
   def test_add_new_binfile_property_no_permission(self):
     with self.assertRaises(FPLPermissionDenied):
-      self.fp.add_binfile_property(uid=1045, binfile=self.bf, name="TestDate", value="2015-10-31")
+      self.fp.add_binfile_property(uid=1045, binfile=self.bf,
+                                   name="TestDate", value="2015-10-31")
 
   def test_add_binfile_property_already_exists(self):
-    self.fp.add_binfile_property(uid=1046, binfile=self.bf, name="TestDate", value="2015-10-31")
-    self.assertEqual(self.bf.properties(self.fp.session), {"TestDate":"2015-10-31"})
+    self.fp.add_binfile_property(uid=1046, binfile=self.bf,
+                                 name="TestDate", value="2015-10-31")
+    self.assertEqual(self.bf.properties(self.fp.session),
+                     {"TestDate":"2015-10-31"})
     with self.assertRaises(FPLPropertyExists):
-      self.fp.add_binfile_property(uid=1046, binfile=self.bf, name="TestDate", value="2015-10-29")
-    self.assertEqual(self.bf.properties(self.fp.session), {"TestDate":"2015-10-31"})
+      self.fp.add_binfile_property(uid=1046, binfile=self.bf,
+                                   name="TestDate", value="2015-10-29")
+    self.assertEqual(self.bf.properties(self.fp.session),
+                     {"TestDate":"2015-10-31"})
 
   def test_update_binfile_property(self):
-    self.fp.add_binfile_property(uid=1046, binfile=self.bf, name="TestDate", value="2015-10-31")
-    self.assertEqual(self.bf.properties(self.fp.session), {"TestDate":"2015-10-31"})
-    self.fp.add_binfile_property(uid=1046, binfile=self.bf, name="TestDate", value="2015-10-29", update=True)
-    self.assertEqual(self.bf.properties(self.fp.session), {"TestDate":"2015-10-29"})
+    self.fp.add_binfile_property(uid=1046, binfile=self.bf,
+                                 name="TestDate", value="2015-10-31")
+    self.assertEqual(self.bf.properties(self.fp.session),
+                     {"TestDate":"2015-10-31"})
+    self.fp.add_binfile_property(uid=1046, binfile=self.bf,
+                                 name="TestDate", value="2015-10-29",
+                                 update=True)
+    self.assertEqual(self.bf.properties(self.fp.session),
+                     {"TestDate":"2015-10-29"})
 
   def test_update_binfile_property_permission_denied(self):
-    self.fp.add_binfile_property(uid=1046, binfile=self.bf, name="TestDate", value="2015-10-31")
-    self.assertEqual(self.bf.properties(self.fp.session), {"TestDate":"2015-10-31"})
+    self.fp.add_binfile_property(uid=1046, binfile=self.bf,
+                                 name="TestDate", value="2015-10-31")
+    self.assertEqual(self.bf.properties(self.fp.session),
+                     {"TestDate":"2015-10-31"})
     with self.assertRaises(FPLPermissionDenied):
-      self.fp.add_binfile_property(uid=1045, binfile=self.bf, name="TestDate", value="2015-10-29", update=True)
+      self.fp.add_binfile_property(uid=1045, binfile=self.bf,
+                                   name="TestDate", value="2015-10-29",
+                                   update=True)
 
   def test_add_same_property_name_to_different_files(self):
-    self.fp.add_binfile_property(uid=1046, binfile=self.bf, name="TestDate", value="2015-10-31")
-    self.assertEqual(self.bf.properties(self.fp.session), {"TestDate":"2015-10-31"})
-    self.fp.add_binfile_property(uid=1046, binfile=self.aux, name="TestDate", value="2015-10-29")
-    self.assertEqual(self.aux.properties(self.fp.session), {"TestDate":"2015-10-29"})
+    self.fp.add_binfile_property(uid=1046, binfile=self.bf,
+                                 name="TestDate", value="2015-10-31")
+    self.assertEqual(self.bf.properties(self.fp.session),
+                     {"TestDate":"2015-10-31"})
+    self.fp.add_binfile_property(uid=1046, binfile=self.aux,
+                                 name="TestDate", value="2015-10-29")
+    self.assertEqual(self.aux.properties(self.fp.session),
+                     {"TestDate":"2015-10-29"})
     pas = self.fp.session.query(BinFileProp).all()
     self.assertEqual(len(pas), 2)
     props = self.fp.session.query(Property).all()
@@ -1102,6 +1209,7 @@ class TestBinFileProperty(unittest.TestCase):
     self.assertEqual(props[0].value, "2015-10-31")
     self.assertEqual(props[1].name, "TestDate")
     self.assertEqual(props[1].value, "2015-10-29")
+
 
 if __name__ == "__main__":
   unittest.main()

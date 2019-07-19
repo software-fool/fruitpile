@@ -21,11 +21,14 @@ import os
 import sys
 import sqlite3
 
-mydir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
-sys.path.append(os.path.dirname(mydir))
+from fruitpile import (
+  FPLInvalidStateTransition,
+  FPLPermissionDenied,
+  FPLUnknownState,
+  FPLCannotTransitionState,
+  FPLSourceFilePermissionDenied)
+from fruitpile.fp_state import StateMachine, StateTransition
 
-from fruitpile import FPLInvalidStateTransition, FPLPermissionDenied, FPLUnknownState, FPLCannotTransitionState, FPLSourceFilePermissionDenied
-from fruitpile.fp_state import *
 
 class DummyPermManager(object):
   def __init__(self, allow):
@@ -35,15 +38,17 @@ class DummyPermManager(object):
     if not self.allow:
       raise FPLPermissionDenied
 
+
 def transition_function(uid, pm, old_state, new_state, d):
   obj = d["obj"]
-  obj.called_back_uid=uid
-  obj.called_back_pm=pm
-  obj.called_back_old_state=old_state
-  obj.called_back_new_state=new_state
-  obj.called_back_data=d["data"]
+  obj.called_back_uid = uid
+  obj.called_back_pm = pm
+  obj.called_back_old_state = old_state
+  obj.called_back_new_state = new_state
+  obj.called_back_data = d["data"]
   if obj.refuse_callback:
     raise obj.refuse_callback
+
 
 class TestStateMachine(unittest.TestCase):
 
@@ -56,7 +61,10 @@ class TestStateMachine(unittest.TestCase):
   def build_simple_state_machine(self, fn):
     sm = StateMachine()
     sm._state = "start"
-    sm._transitions["start"] = {"end": StateTransition(new_state="end",capability="OMNIPOTENCE",transfn=fn,data=["name=This is some data"])}
+    sm._transitions["start"] = {
+      "end": StateTransition(new_state="end",
+                             capability="OMNIPOTENCE",
+                             transfn=fn,data=["name=This is some data"])}
     return sm
 
   def test_empty_state_machine(self):
@@ -77,7 +85,7 @@ class TestStateMachine(unittest.TestCase):
     self.assertEqual(sm.state, "start")
     pm = DummyPermManager(False)
     with self.assertRaises(FPLPermissionDenied):
-      new_state = sm.transit(100, pm, "start", "end", {"obj":self})
+      sm.transit(100, pm, "start", "end", {"obj":self})
 
   def test_simple_state_machine_with_callback(self):
     sm = self.build_simple_state_machine(transition_function)
@@ -115,7 +123,8 @@ class TestStateMachine(unittest.TestCase):
     new_state = None
     with self.assertRaises(FPLCannotTransitionState) as exc:
       new_state = sm.transit(100, pm, "start", "end", {"obj":self})
-    self.assertTrue(isinstance(exc.exception.exc, FPLSourceFilePermissionDenied))
+    self.assertTrue(isinstance(exc.exception.exc,
+                               FPLSourceFilePermissionDenied))
     self.assertEqual(new_state, None)
     self.assertEqual(self.called_back_uid, 100)
     self.assertEqual(self.called_back_pm, pm)
@@ -139,7 +148,5 @@ class TestStateMachine(unittest.TestCase):
     self.assertEqual(self.called_back_data, ["name=This is some data"])
 
 
-
 if __name__ == "__main__":
   unittest.main()
-

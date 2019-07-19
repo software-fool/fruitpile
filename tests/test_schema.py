@@ -13,18 +13,32 @@
 #
 # You should have received a copy of the GNU General Public License
 # along with Fruitpile.  If not, see <http://www.gnu.org/licenses/>.
-
 import unittest
-import inspect
-import os.path
-import sys
 from datetime import datetime
 
-mydir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
-sys.path.append(os.path.dirname(mydir))
-
-from fruitpile.db.schema import *
+from fruitpile.db.schema import (
+  Base,
+  State,
+  Transition,
+  TransitionFunction,
+  TransitionFunctionData,
+  Repo,
+  FileSet,
+  BinFile,
+  Permission,
+  User,
+  UserPermission,
+  Migration,
+  Tag,
+  TagAssoc,
+  Property,
+  PropAssoc,
+  BinFileTag,
+  BinFileProp,
+  IntegrityError)
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
+
 
 def setUpDatabase():
   engine = create_engine('sqlite:///:memory:')
@@ -32,6 +46,7 @@ def setUpDatabase():
   Session = sessionmaker(bind=engine)
   session = Session()
   return engine, session
+
 
 class TestSchemaState(unittest.TestCase):
 
@@ -76,7 +91,8 @@ class TestSchemaState(unittest.TestCase):
     self.session.rollback()
 
   def test_create_state_transitions(self):
-    perm = Permission(name="A_PERMISSION", description="A permission for testing")
+    perm = Permission(name="A_PERMISSION",
+                      description="A permission for testing")
     st1 = State(name="start")
     st2 = State(name="in-progress")
     st3 = State(name="in-review")
@@ -102,16 +118,21 @@ class TestSchemaState(unittest.TestCase):
     st1 = State(name="begin")
     st2 = State(name="end")
     transfn = TransitionFunction(transfn="ensure_reviewed")
-    perm = Permission(name="A_PERMISSION", description="A permission for testing")
+    perm = Permission(name="A_PERMISSION",
+                      description="A permission for testing")
     self.session.add_all([st1,st2,transfn,perm])
     self.session.commit()
-    trns1 = Transition(start_id=st1.id, end_id=st2.id, perm=perm, transfn_id=transfn.id)
+    trns1 = Transition(start_id=st1.id, end_id=st2.id,
+                       perm=perm, transfn_id=transfn.id)
     self.session.add(trns1)
     self.session.commit()
     ts = self.session.query(Transition).all()
     self.assertEqual(len(ts), 1)
     ts0 = ts[0]
-    self.assertEqual(str(ts0), "<Transition(begin=>end with transfn=<TransitionFunction(ensure_reviewed)>([]))>")
+    self.assertEqual(
+      str(ts0),
+      ("<Transition(begin=>end with "
+       "transfn=<TransitionFunction(ensure_reviewed)>([]))>"))
     self.assertEqual(ts0.start_id, st1.id)
     self.assertEqual(ts0.end_id, st2.id)
     self.assertEqual(ts0.perm_id, perm.id)
@@ -121,20 +142,29 @@ class TestSchemaState(unittest.TestCase):
     st1 = State(name="begin")
     st2 = State(name="end")
     transfn = TransitionFunction(transfn="transition_function")
-    perm = Permission(name="A_PERMISSION", description="A permission for testing")
+    perm = Permission(name="A_PERMISSION",
+                      description="A permission for testing")
     self.session.add_all([st1,st2,transfn,perm])
     self.session.commit()
-    trns1 = Transition(start_id=st1.id, end_id=st2.id, perm=perm, transfn_id=transfn.id)
+    trns1 = Transition(start_id=st1.id, end_id=st2.id,
+                       perm=perm, transfn_id=transfn.id)
     self.session.add(trns1)
     self.session.commit()
-    trns_data = TransitionFunctionData(trans_id=trns1.id, data="THIS IS SOME DATA")
+    trns_data = TransitionFunctionData(trans_id=trns1.id,
+                                       data="THIS IS SOME DATA")
     self.session.add(trns_data)
     self.session.commit()
     transitions = self.session.query(Transition).all()
     self.assertEqual(len(transitions), 1)
     t0 = transitions[0]
-    self.assertEqual(str(t0), "<Transition(begin=>end with transfn=<TransitionFunction(transition_function)>([<TransitionFunctionData(fn_id=1,data=THIS IS SOME DATA)>]))>")
-    tdata = self.session.query(TransitionFunctionData).filter(TransitionFunctionData.trans_id==t0.id).all()
+    self.assertEqual(
+      str(t0),
+      ("<Transition(begin=>end with "
+       "transfn=<TransitionFunction(transition_function)>"
+       "([<TransitionFunctionData(fn_id=1,data=THIS IS SOME DATA)>]))>"))
+    tdata = self.session.query(
+      TransitionFunctionData).filter(
+        TransitionFunctionData.trans_id == t0.id).all()
     self.assertEqual(len(tdata), 1)
     self.assertEqual(tdata[0].data, "THIS IS SOME DATA")
 
@@ -150,25 +180,28 @@ class TestSchemaRepo(unittest.TestCase):
   def test_create_a_repo(self):
     repos = self.session.query(Repo).all()
     self.assertEqual(len(repos), 0)
-    repo = Repo(name="default", path="/export/fruitpile/repo", repo_type="FileManager")
+    repo = Repo(name="default",
+                path="/export/fruitpile/repo", repo_type="FileManager")
     self.session.add(repo)
     self.session.commit()
     repos = self.session.query(Repo).all()
     self.assertEqual(len(repos), 1)
     self.assertEqual(repos[0], repo)
 
+
 class TestSchemaFileSet(unittest.TestCase):
 
   def setUp(self):
     self.engine, self.session = setUpDatabase()
-  
+ 
   def tearDown(self):
     self.session.close()
 
   def test_create_a_fileset(self):
     fss = self.session.query(FileSet).all()
     self.assertEqual(len(fss), 0)
-    repo = Repo(name="default", path="/export/fruitpile/repo", repo_type="FileManager")
+    repo = Repo(name="default",
+                path="/export/fruitpile/repo", repo_type="FileManager")
     fs = FileSet(name="test-1", version="3.1", revision="1234", repo=repo)
     self.session.add(fs)
     self.session.commit()
@@ -179,10 +212,14 @@ class TestSchemaFileSet(unittest.TestCase):
   def test_create_multiple_filesets(self):
     fss = self.session.query(FileSet).all()
     self.assertEqual(len(fss), 0)
-    repo = Repo(name="default", path="/export/fruitpile/repo", repo_type="FileManager")
+    repo = Repo(name="default",
+                path="/export/fruitpile/repo", repo_type="FileManager")
     fss = []
     for i in range(0,10):
-      fs = FileSet(name="test-%d" % (i), version="%s" % (i), revision="%s" % (i), repo=repo)
+      fs = FileSet(name="test-%d" % (i),
+                   version="%s" % (i),
+                   revision="%s" % (i),
+                   repo=repo)
       self.session.add(fs)
       fss.append(fs)
     self.session.commit()
@@ -202,7 +239,8 @@ class TestSchemaBinFile(unittest.TestCase):
   def test_create_a_bin_file(self):
     bfs = self.session.query(BinFile).all()
     self.assertEqual(len(bfs), 0)
-    repo = Repo(name="default", path="/export/fruitpile/repo", repo_type="FileManager")
+    repo = Repo(name="default",
+                path="/export/fruitpile/repo", repo_type="FileManager")
     fs = FileSet(name="test-1",
                  version="4",
                  revision="1234",
@@ -222,19 +260,28 @@ class TestSchemaBinFile(unittest.TestCase):
     bfs = self.session.query(BinFile).all()
     self.assertEqual(len(bfs), 1)
     self.assertEqual(bfs[0], bf)
-    self.assertEqual(str(bf), "<BinFile(name='xx-1.4.tar.gz', path='build-1/xx-1.4.tar.gz')>")
+    self.assertEqual(
+      str(bf),
+      "<BinFile(name='xx-1.4.tar.gz', path='build-1/xx-1.4.tar.gz')>")
 
   def test_create_multiple_bin_files(self):
     bfs = self.session.query(BinFile).all()
     self.assertEqual(len(bfs), 0)
-    repo = Repo(name="default", path="/export/fruitpile/repo", repo_type="FileManager")
+    repo = Repo(name="default",
+                path="/export/fruitpile/repo", repo_type="FileManager")
     fs = FileSet(name="test-1",
                  version="4",
                  revision="1234",
                  repo=repo)
     st = State(name="unverified")
     bfs = []
-    targets = ["arm-cortex_m4","arm-cortex_a8","x86","x86_64","mip32","java","python"]
+    targets = ["arm-cortex_m4",
+               "arm-cortex_a8",
+               "x86",
+               "x86_64",
+               "mip32",
+               "java",
+               "python"]
     for n in targets:
       bf = BinFile(fileset=fs,
                    name="xx-%s-1.4.tar.gz" % (n),
@@ -262,7 +309,8 @@ class TestSchemaPermission(unittest.TestCase):
     self.session.close()
 
   def test_create_single_permission(self):
-    perm = Permission(name="ADD_FILESET", description="Grant permission to add a fileset")
+    perm = Permission(name="ADD_FILESET",
+                      description="Grant permission to add a fileset")
     self.session.add(perm)
     self.session.commit()
     self.session.rollback()
@@ -291,13 +339,16 @@ class TestSchemaPermission(unittest.TestCase):
     self.assertEqual(ps1, ps2)
 
   def test_fail_to_create_duplicates(self):
-    perm1 = Permission(name="ADD_FILESET", description="Grant permission to add a fileset")
+    perm1 = Permission(name="ADD_FILESET",
+                       description="Grant permission to add a fileset")
     self.session.add(perm1)
-    perm2 = Permission(name="ADD_FILESET", description="Some other permission with the same name")
+    perm2 = Permission(name="ADD_FILESET",
+                       description="Some other permission with the same name")
     self.session.add(perm2)
     with self.assertRaises(IntegrityError):
       self.session.commit()
     self.session.rollback()
+
 
 class TestSchemaUsers(unittest.TestCase):
 
@@ -338,16 +389,17 @@ class TestSchemaUsers(unittest.TestCase):
     user = User(uid=1046, name="db")
     user_perms = [UserPermission(user_id=1046, perm_id=ps[2].id),
                   UserPermission(user_id=1046, perm_id=ps[3].id)]
-    self.session.add_all([user]+user_perms)
+    self.session.add_all([user] + user_perms)
     self.session.commit()
     users0 = self.session.query(User).all()
     user0 = users0[0]
     self.assertEqual(len(users0), 1)
     self.assertEqual(user0.uid, 1046)
     self.assertEqual(user0.user_perms[0].perm, ps[2])
-    self.assertEqual(user0.user_perms[1].perm ,ps[3])
+    self.assertEqual(user0.user_perms[1].perm, ps[3])
     self.assertNotIn(ps[0], user0.user_perms)
     self.assertNotIn(ps[1], user0.user_perms)
+
 
 class TestMigrations(unittest.TestCase):
 
@@ -373,6 +425,7 @@ class TestMigrations(unittest.TestCase):
     self.assertEqual(len(records), 1)
     self.assertEqual(records[0], mig)
 
+
 class TestPermission(unittest.TestCase):
 
   def setUp(self):
@@ -382,11 +435,13 @@ class TestPermission(unittest.TestCase):
     self.session.close()
 
   def test_permission(self):
-    perm = Permission(name="OMNIPOTENCE", description="An all powerful permission")
+    perm = Permission(name="OMNIPOTENCE",
+                      description="An all powerful permission")
     self.session.add(perm)
     self.session.commit()
     self.assertEqual(perm.id, 1)
     self.assertEqual(str(perm), "<Permission(OMNIPOTENCE=1)>")
+
 
 class TestTag(unittest.TestCase):
 
@@ -403,6 +458,7 @@ class TestTag(unittest.TestCase):
     self.assertEqual(tag.id, 1)
     self.assertEqual(str(tag), "<Tag(MemoryOptimized)>")
 
+
 class TestProperty(unittest.TestCase):
 
   def setUp(self):
@@ -418,12 +474,17 @@ class TestProperty(unittest.TestCase):
     self.assertEqual(prop.id, 1)
     self.assertEqual(str(prop), "<Property(Author,Dwight Jones)>")
 
+
 class TestTagAssocs(unittest.TestCase):
 
   def setUp(self):
     self.engine, self.session = setUpDatabase()
-    self.repo = Repo(name="default", path="/export/fruitpile/repo", repo_type="FileManager")
-    self.fs = FileSet(name="test-1", version="3.1", revision="1234", repo=self.repo)
+    self.repo = Repo(name="default",
+                     path="/export/fruitpile/repo", repo_type="FileManager")
+    self.fs = FileSet(name="test-1",
+                      version="3.1",
+                      revision="1234",
+                      repo=self.repo)
     self.session.add_all([self.repo,self.fs])
     self.session.commit()
 
@@ -442,12 +503,18 @@ class TestTagAssocs(unittest.TestCase):
     self.assertEqual(rows[0].tag_id, tag.id)
     self.assertEqual(rows[0].fileset_id, self.fs.id)
 
+
 class TestPropAssoc(unittest.TestCase):
 
   def setUp(self):
     self.engine, self.session = setUpDatabase()
-    self.repo = Repo(name="default", path="/export/fruitpile/repo", repo_type="FileManager")
-    self.fs = FileSet(name="test-1", version="3.1", revision="1234", repo=self.repo)
+    self.repo = Repo(name="default",
+                     path="/export/fruitpile/repo",
+                     repo_type="FileManager")
+    self.fs = FileSet(name="test-1",
+                      version="3.1",
+                      revision="1234",
+                      repo=self.repo)
     self.prop = Property(name="Author", value="Dwight Jones")
     self.session.add_all([self.repo,self.fs,self.prop])
     self.session.commit()
@@ -469,8 +536,13 @@ class TestBinFileTag(unittest.TestCase):
 
   def setUp(self):
     self.engine, self.session = setUpDatabase()
-    self.repo = Repo(name="default", path="/export/fruitpile/repo", repo_type="FileManager")
-    self.fs = FileSet(name="test-1", version="3.1", revision="1234", repo=self.repo)
+    self.repo = Repo(name="default",
+                     path="/export/fruitpile/repo",
+                     repo_type="FileManager")
+    self.fs = FileSet(name="test-1",
+                      version="3.1",
+                      revision="1234",
+                      repo=self.repo)
     self.bf = BinFile(fileset=self.fs,
                       name="test-1",
                       path="path",
@@ -503,8 +575,13 @@ class TestBinFileProp(unittest.TestCase):
 
   def setUp(self):
     self.engine, self.session = setUpDatabase()
-    self.repo = Repo(name="default", path="/export/fruitpile/repo", repo_type="FileManager")
-    self.fs = FileSet(name="test-1", version="3.1", revision="1234", repo=self.repo)
+    self.repo = Repo(name="default",
+                     path="/export/fruitpile/repo",
+                     repo_type="FileManager")
+    self.fs = FileSet(name="test-1",
+                      version="3.1",
+                      revision="1234",
+                      repo=self.repo)
     self.bf = BinFile(fileset=self.fs,
                       name="test-1",
                       path="path",
@@ -529,7 +606,6 @@ class TestBinFileProp(unittest.TestCase):
     self.assertEqual(len(rows), 1)
     self.assertEqual(rows[0].prop_id, self.prop.id)
     self.assertEqual(rows[0].binfile_id, self.bf.id)
-
 
 
 if __name__ == "__main__":

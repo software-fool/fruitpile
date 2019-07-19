@@ -14,16 +14,13 @@
 # You should have received a copy of the GNU General Public License
 # along with Fruitpile.  If not, see <http://www.gnu.org/licenses/>.
 import unittest
-import inspect
 import os.path
-import sys
 import io
-from datetime import datetime
 
-mydir = os.path.dirname(os.path.abspath(sys.modules[__name__].__file__))
-sys.path.append(os.path.dirname(mydir))
+from fruitpile.repo.filemanager import FileHandler
 
-from fruitpile.repo.filemanager import FileHandler, FileManager
+mydir = os.path.dirname(__file__)
+
 
 class TestFileHandler(unittest.TestCase):
 
@@ -59,7 +56,7 @@ class TestFileHandler(unittest.TestCase):
     fh.close()
     fob = io.open(self.filename, "rb")
     data = fob.read()
-    self.assertEqual(chunk*5, data)
+    self.assertEqual(chunk * 5, data)
 
   def test_chunked_reading(self):
     filename = "%s/data/example_file.txt" % (mydir)
@@ -74,6 +71,6 @@ class TestFileHandler(unittest.TestCase):
       fh.close()
       fh.read()
 
+
 if __name__ == "__main__":
   unittest.main()
-
