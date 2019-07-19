@@ -43,10 +43,10 @@ def build_permissions_table(obj):
     perm = Permission(name=name, description=description)
     obj.session.add(perm)
   obj.session.commit()
-  obj.assertEquals(Capability.ADD_FILESET, 1)
-  obj.assertEquals(Capability.ADD_FILE, 2)
-  obj.assertEquals(Capability.LIST_FILESETS, 3)
-  obj.assertEquals(Capability.LIST_FILES, 4)
+  obj.assertEqual(Capability.ADD_FILESET, 1)
+  obj.assertEqual(Capability.ADD_FILE, 2)
+  obj.assertEqual(Capability.LIST_FILESETS, 3)
+  obj.assertEqual(Capability.LIST_FILES, 4)
 
 
 class TestCapabilities(unittest.TestCase):
@@ -77,15 +77,15 @@ class TestPermissionManager(unittest.TestCase):
   def test_create_permission_manager(self):
     build_permissions_table(self)
     perm_man = PermissionManager(self.session)
-    self.assertEquals(Capability.ADD_FILESET, 1)
-    self.assertEquals(Capability.ADD_FILE, 2)
-    self.assertEquals(Capability.LIST_FILESETS, 3)
-    self.assertEquals(Capability.LIST_FILES, 4)
+    self.assertEqual(Capability.ADD_FILESET, 1)
+    self.assertEqual(Capability.ADD_FILE, 2)
+    self.assertEqual(Capability.LIST_FILESETS, 3)
+    self.assertEqual(Capability.LIST_FILES, 4)
 
   def test_get_all_permissions_from_permission_manager(self):
     build_permissions_table(self)
     perm_man = PermissionManager(self.session)
-    self.assertEquals(set(Capability.keys()),
+    self.assertEqual(set(Capability.keys()),
                       set(["ADD_FILESET","ADD_FILE",
                            "LIST_FILESETS","LIST_FILES",
                            "APPROVE_ARTIFACT","ARTIFACT_TESTED",
@@ -102,7 +102,7 @@ class TestPermissionManager(unittest.TestCase):
     perm_man = PermissionManager(self.session)
     perms = self.session.query(UserPermission).filter(UserPermission.user_id==1046).all()
     perm_ids = [perm.id for perm in perms]
-    self.assertEquals(perm_ids, [])
+    self.assertEqual(perm_ids, [])
     with self.assertRaises(FPLPermissionDenied):
       perm_man.check_permission(Capability.LIST_FILESETS, set(perm_ids))
 

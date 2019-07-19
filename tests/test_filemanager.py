@@ -40,7 +40,7 @@ class TestFileHandler(unittest.TestCase):
     filename = "%s/data/example_file.txt" % (mydir)
     fh = FileHandler.create_file(filename, "r")
     data = fh.read()
-    self.assertEquals(data, io.open(filename, "rb").read())
+    self.assertEqual(data, io.open(filename, "rb").read())
 
   def test_open_a_file_to_write(self):
     fh = FileHandler.create_file(self.filename, "w")
@@ -49,7 +49,7 @@ class TestFileHandler(unittest.TestCase):
     fh.close()
     fob = io.open(self.filename, "rb")
     data = fob.read()
-    self.assertEquals(contents, data)
+    self.assertEqual(contents, data)
 
   def test_chunked_writing(self):
     fh = FileHandler.create_file(self.filename, "w")
@@ -59,13 +59,13 @@ class TestFileHandler(unittest.TestCase):
     fh.close()
     fob = io.open(self.filename, "rb")
     data = fob.read()
-    self.assertEquals(chunk*5, data)
+    self.assertEqual(chunk*5, data)
 
   def test_chunked_reading(self):
     filename = "%s/data/example_file.txt" % (mydir)
     fh = FileHandler.create_file(filename, "r")
     data = fh.read(5)
-    self.assertEquals(data, b"My na")
+    self.assertEqual(data, b"My na")
 
   def test_op_on_closed_file(self):
     with self.assertRaises(IOError):

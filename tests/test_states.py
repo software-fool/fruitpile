@@ -61,82 +61,82 @@ class TestStateMachine(unittest.TestCase):
 
   def test_empty_state_machine(self):
     sm = StateMachine()
-    self.assertEquals(sm.state, None)
+    self.assertEqual(sm.state, None)
     with self.assertRaises(FPLUnknownState):
       sm.transit(1000, None, "start", "new_state", {"obj":self})
 
   def test_simple_state_machine(self):
     sm = self.build_simple_state_machine(lambda a,b,c,d,e: None)
-    self.assertEquals(sm.state, "start")
+    self.assertEqual(sm.state, "start")
     pm = DummyPermManager(True)
     new_state = sm.transit(100, pm, "start", "end", {"obj":self})
-    self.assertEquals(new_state, "end")
+    self.assertEqual(new_state, "end")
 
   def test_simple_state_machine_permission_denied_transition(self):
     sm = self.build_simple_state_machine(lambda a,b,c,d,e: None)
-    self.assertEquals(sm.state, "start")
+    self.assertEqual(sm.state, "start")
     pm = DummyPermManager(False)
     with self.assertRaises(FPLPermissionDenied):
       new_state = sm.transit(100, pm, "start", "end", {"obj":self})
 
   def test_simple_state_machine_with_callback(self):
     sm = self.build_simple_state_machine(transition_function)
-    self.assertEquals(sm.state, "start")
+    self.assertEqual(sm.state, "start")
     pm = DummyPermManager(True)
     self.refuse_callback = None
     new_state = sm.transit(100, pm, "start", "end", {"obj":self})
-    self.assertEquals(new_state, "end")
-    self.assertEquals(self.called_back_uid, 100)
-    self.assertEquals(self.called_back_pm, pm)
-    self.assertEquals(self.called_back_old_state, "start")
-    self.assertEquals(self.called_back_new_state, "end")
-    self.assertEquals(self.called_back_data, ["name=This is some data"])
+    self.assertEqual(new_state, "end")
+    self.assertEqual(self.called_back_uid, 100)
+    self.assertEqual(self.called_back_pm, pm)
+    self.assertEqual(self.called_back_old_state, "start")
+    self.assertEqual(self.called_back_new_state, "end")
+    self.assertEqual(self.called_back_data, ["name=This is some data"])
 
   def test_simple_state_machine_with_callback_disallowed_general_error(self):
     sm = self.build_simple_state_machine(transition_function)
-    self.assertEquals(sm.state, "start")
+    self.assertEqual(sm.state, "start")
     pm = DummyPermManager(True)
     self.refuse_callback = KeyError("TEST")
     new_state = None
     with self.assertRaises(FPLCannotTransitionState):
       new_state = sm.transit(100, pm, "start", "end", {"obj":self})
-    self.assertEquals(new_state, None)
-    self.assertEquals(self.called_back_uid, 100)
-    self.assertEquals(self.called_back_pm, pm)
-    self.assertEquals(self.called_back_old_state, "start")
-    self.assertEquals(self.called_back_new_state, "end")
-    self.assertEquals(self.called_back_data, ["name=This is some data"])
+    self.assertEqual(new_state, None)
+    self.assertEqual(self.called_back_uid, 100)
+    self.assertEqual(self.called_back_pm, pm)
+    self.assertEqual(self.called_back_old_state, "start")
+    self.assertEqual(self.called_back_new_state, "end")
+    self.assertEqual(self.called_back_data, ["name=This is some data"])
 
   def test_simple_state_machine_with_callback_disallowed_source_file_permission_denied(self):
     sm = self.build_simple_state_machine(transition_function)
-    self.assertEquals(sm.state, "start")
+    self.assertEqual(sm.state, "start")
     pm = DummyPermManager(True)
     self.refuse_callback = FPLSourceFilePermissionDenied("TEST")
     new_state = None
     with self.assertRaises(FPLCannotTransitionState) as exc:
       new_state = sm.transit(100, pm, "start", "end", {"obj":self})
     self.assertTrue(isinstance(exc.exception.exc, FPLSourceFilePermissionDenied))
-    self.assertEquals(new_state, None)
-    self.assertEquals(self.called_back_uid, 100)
-    self.assertEquals(self.called_back_pm, pm)
-    self.assertEquals(self.called_back_old_state, "start")
-    self.assertEquals(self.called_back_new_state, "end")
-    self.assertEquals(self.called_back_data, ["name=This is some data"])
+    self.assertEqual(new_state, None)
+    self.assertEqual(self.called_back_uid, 100)
+    self.assertEqual(self.called_back_pm, pm)
+    self.assertEqual(self.called_back_old_state, "start")
+    self.assertEqual(self.called_back_new_state, "end")
+    self.assertEqual(self.called_back_data, ["name=This is some data"])
 
   def test_simple_state_machine_with_callback_disallowed_permission_denied_passthrough(self):
     sm = self.build_simple_state_machine(transition_function)
-    self.assertEquals(sm.state, "start")
+    self.assertEqual(sm.state, "start")
     pm = DummyPermManager(True)
     self.refuse_callback = FPLPermissionDenied("TEST")
     new_state = None
     with self.assertRaises(FPLPermissionDenied):
       new_state = sm.transit(100, pm, "start", "end", {"obj":self})
-    self.assertEquals(new_state, None)
-    self.assertEquals(self.called_back_uid, 100)
-    self.assertEquals(self.called_back_pm, pm)
-    self.assertEquals(self.called_back_old_state, "start")
-    self.assertEquals(self.called_back_new_state, "end")
-    self.assertEquals(self.called_back_data, ["name=This is some data"])
+    self.assertEqual(new_state, None)
+    self.assertEqual(self.called_back_uid, 100)
+    self.assertEqual(self.called_back_pm, pm)
+    self.assertEqual(self.called_back_old_state, "start")
+    self.assertEqual(self.called_back_new_state, "end")
+    self.assertEqual(self.called_back_data, ["name=This is some data"])
 
 
 
