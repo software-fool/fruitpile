@@ -34,7 +34,7 @@ from fruitpile.fp_tool import (
   fp_add_fileset_tags,
   fp_add_fileset_props,
   fp_add_binfile_tags)
-from test_fruitpile import clear_tree
+from fruitpile.tests.test_fruitpile import clear_tree
 
 
 class TestFPToolInit(unittest.TestCase):
